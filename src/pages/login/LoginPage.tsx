@@ -12,7 +12,12 @@ import LoginImages from './LoginImages';
 
 import UserService from '@services/UserService';
 
-const LoginPage = () => {
+/** Storybook/테스트용: 설정 시 실제 API 대신 해당 결과 분기만 보여줌 */
+export type LoginPageProps = {
+  mockLogin?: 'success' | 'error';
+};
+
+const LoginPage = ({ mockLogin }: LoginPageProps = {}) => {
   const navigate = useNavigate();
   const [formData, setFormData] = useState({
     username: '',
@@ -21,7 +26,20 @@ const LoginPage = () => {
 
   const handleLogin = async () => {
     try {
-      const response = await UserService.login(formData);
+      let response;
+
+      if (mockLogin !== undefined) {
+        if (mockLogin === 'success') {
+          response = {
+            token: { access: 'mock-token' },
+            data: { manager_id: 1, booth_id: 1 },
+          };
+        } else {
+          throw new Error('로그인 실패했습니다. 다시 시도해 주세요.');
+        }
+      } else {
+        response = await UserService.login(formData);
+      }
 
       const accessToken = response.token?.access;
       const managerId = response.data.manager_id;
@@ -31,7 +49,6 @@ const LoginPage = () => {
       }
 
       localStorage.setItem('accessToken', accessToken);
-
       navigate(ROUTE_PATHS.HOME);
     } catch (err) {
       alert('로그인 실패했습니다. 다시 시도해 주세요.');
