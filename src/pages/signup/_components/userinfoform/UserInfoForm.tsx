@@ -15,6 +15,9 @@ const checkDuplicateId = async (id: string): Promise<boolean> => {
   return response.data?.data?.is_available;
 };
 
+/** Storybook용: 설정 시 API 대신 해당 결과로 중복 확인 메시지 표시 */
+export type MockDuplicateCheck = 'success' | 'duplicate' | 'error';
+
 type Props = {
   formData: {
     userId: string;
@@ -25,6 +28,8 @@ type Props = {
   onNext: () => void;
   userStage: number;
   setUserStage: React.Dispatch<React.SetStateAction<number>>;
+  /** Storybook용: 중복 확인 성공/실패/오류 분기 */
+  mockDuplicateCheck?: MockDuplicateCheck;
 };
 
 const UserInfoForm = ({
@@ -33,6 +38,7 @@ const UserInfoForm = ({
   onNext,
   userStage,
   setUserStage,
+  mockDuplicateCheck,
 }: Props) => {
   const { userId, password, confirmPassword } = formData;
 
@@ -59,8 +65,14 @@ const UserInfoForm = ({
       return;
     }
 
-    // 형식 OK이면 디바운스로 서버중복검사
+    // 형식 OK이면 디바운스로 서버중복검사 (또는 Storybook 목업)
     const timer = setTimeout(async () => {
+      if (mockDuplicateCheck !== undefined) {
+        if (mockDuplicateCheck === 'success') setIdSuccess('사용 가능한 아이디예요.');
+        else if (mockDuplicateCheck === 'duplicate') setIdError('이미 존재하는 아이디예요.');
+        else setIdError('중복 확인 중 오류가 발생했습니다.');
+        return;
+      }
       try {
         const available = await checkDuplicateId(userId);
         if (available) setIdSuccess('사용 가능한 아이디예요.');
@@ -71,7 +83,7 @@ const UserInfoForm = ({
     }, 400);
 
     return () => clearTimeout(timer);
-  }, [userId]);
+  }, [userId, mockDuplicateCheck]);
 
   // --- 2) 비밀번호: 즉시 형식검사 ---
   useEffect(() => {
