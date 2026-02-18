@@ -10,12 +10,22 @@ export enum Step {
   COMPLETE = 4,
 }
 
-export const useSignupPage = () => {
+/** Storybook용: 아이디 중복 확인 결과 목업 */
+export type MockDuplicateCheck = 'success' | 'duplicate' | 'error';
+
+/** Storybook용: 회원가입 제출 결과 목업 */
+export type MockSignupSubmit = 'success' | 'fail';
+
+/** Storybook용: 초기 단계 지정 (1=회원정보, 2=주점정보, 3=결제정보) */
+export const useSignupPage = (
+  initialStep?: Step,
+  mockDuplicateCheck?: MockDuplicateCheck,
+  mockSignupSubmit?: MockSignupSubmit
+) => {
   const navigate = useNavigate();
-  const [step, setStep] = useState<Step>(Step.USER);
+  const [step, setStep] = useState<Step>(initialStep ?? Step.USER);
   const [userStage, setUserStage] = useState(1);
   const [pubStage, setPubStage] = useState(1);
-  const [paymentStage, setPaymentStage] = useState(1);
 
   const [formData, setFormData] = useState({
     userId: '',
@@ -29,8 +39,6 @@ export const useSignupPage = () => {
     accountHolder: '',
     bank: '',
     accountNumber: '',
-    confirmPaymentPassword: '',
-    confirmPaymentPasswordCheck: '',
   });
 
   const handleChange = useCallback((key: string, value: string) => {
@@ -38,13 +46,16 @@ export const useSignupPage = () => {
   }, []);
 
   const handleSubmit = useCallback(async (): Promise<boolean> => {
+    if (mockSignupSubmit !== undefined) {
+      return mockSignupSubmit === 'success';
+    }
     try {
       await UserService.postSignup({
         username: formData.userId,
         password: formData.password,
         booth_name: formData.pubName,
         table_num: Number(formData.tableCount),
-        order_check_password: formData.confirmPaymentPassword,
+        order_check_password: '', // 결제 비밀번호 입력 제거로 빈 값 전달
         account: Number(formData.accountNumber),
         depositor: formData.accountHolder,
         bank: formData.bank,
@@ -59,19 +70,14 @@ export const useSignupPage = () => {
     } catch {
       return false;
     }
-  }, [formData]);
+  }, [formData, mockSignupSubmit]);
 
   const goNext = useCallback(() => {
     setStep((prev) => (prev < Step.COMPLETE ? ((prev + 1) as Step) : prev));
   }, []);
 
   const goBack = useCallback(() => {
-    if (step === Step.PAYMENT && paymentStage > 1) {
-      if (paymentStage === 3) {
-        setFormData((prev) => ({ ...prev, confirmPaymentPasswordCheck: '' }));
-      }
-      setPaymentStage((prev) => prev - 1);
-    } else if (step === Step.PUB && pubStage > 1) {
+    if (step === Step.PUB && pubStage > 1) {
       setPubStage((prev) => prev - 1);
     } else if (step === Step.USER && userStage > 1) {
       if (userStage === 3) {
@@ -83,7 +89,7 @@ export const useSignupPage = () => {
     } else {
       navigate(ROUTE_PATHS.INIT);
     }
-  }, [step, userStage, pubStage, paymentStage, navigate]);
+  }, [step, userStage, pubStage, navigate]);
 
   const stepProps = useMemo(
     () => ({
@@ -93,10 +99,9 @@ export const useSignupPage = () => {
       onSubmit: handleSubmit,
       pubStage,
       setPubStage,
-      paymentStage,
-      setPaymentStage,
       userStage,
       setUserStage,
+      mockDuplicateCheck,
     }),
     [
       formData,
@@ -105,10 +110,9 @@ export const useSignupPage = () => {
       handleSubmit,
       pubStage,
       setPubStage,
-      paymentStage,
-      setPaymentStage,
       userStage,
       setUserStage,
+      mockDuplicateCheck,
     ]
   );
 

@@ -17,6 +17,7 @@ declare module "styled-components" {
       Orange01: string;
       Orange02: string;
       Gray01: string;
+      Gray02: string;
 
       // 텍스트 색상
       Black01: string;
@@ -41,6 +42,7 @@ declare module "styled-components" {
       ExtraBold16: any;
       Bold16: any;
       SemiBold16: any;
+      SemiBold15: any;
       Medium16: any;
 
       // Body

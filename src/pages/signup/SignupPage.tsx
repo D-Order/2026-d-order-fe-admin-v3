@@ -6,8 +6,23 @@ import PaymentInfoForm from './_components/paymentinfoform/PaymentInfoForm';
 
 import { useSignupPage, Step } from './_hooks/useSignupPage';
 
-const SignupPage = () => {
-  const { step, goBack, stepProps } = useSignupPage();
+export type SignupPageProps = {
+  /** Storybook용: 처음 보여줄 단계 */
+  initialStep?: Step;
+  /** Storybook용: 1단계 아이디 중복 확인 결과 (성공/실패/오류) */
+  mockDuplicateCheck?: 'success' | 'duplicate' | 'error';
+  /** Storybook용: 최종 회원가입 제출 결과 (성공/실패) */
+  mockSignupSubmit?: 'success' | 'fail';
+};
+
+const SignupPage = (
+  { initialStep, mockDuplicateCheck, mockSignupSubmit }: SignupPageProps = {}
+) => {
+  const { step, goBack, stepProps } = useSignupPage(
+    initialStep,
+    mockDuplicateCheck,
+    mockSignupSubmit
+  );
 
   const renderStepComponent = () => {
     switch (step) {

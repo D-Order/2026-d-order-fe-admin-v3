@@ -1,16 +1,16 @@
-import { Outlet, useLocation } from "react-router-dom";
-import styled from "styled-components";
-import { useEffect } from "react";
+import { Outlet, useLocation } from 'react-router-dom';
+import styled from 'styled-components';
+import { useEffect } from 'react';
 
 // 개발 중 임시로 주석 처리
-import useAuthRedirect from "@hooks/useAuthRedirect";
+import useAuthRedirect from '@hooks/useAuthRedirect';
 
-import Header from "@components/header/Header";
-import SideBar from "@components/sideBar/SideBar";
+import Header from '@components/header/Header';
+import SideBar from '@components/sideBar/SideBar';
 
 const DefaultLayout = () => {
   // 개발 중 임시로 주석 처리
-  useAuthRedirect();
+  // useAuthRedirect();
   const location = useLocation();
 
   // 라우트 변경 감지를 위한 로그 (디버깅용)
@@ -60,4 +60,6 @@ const Contents = styled.main`
   box-sizing: border-box;
   display: flex;
   flex-grow: 1;
+  min-width: 0;
+  overflow-x: hidden;
 `;
