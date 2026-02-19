@@ -64,13 +64,42 @@ export const TableInfo = styled.div<{ $isOverdue: boolean }>`
     }
     
   }
+  /* 체크박스 커스텀 스타일 */
+  input[type="checkbox"] {
+    appearance: none;
+    -webkit-appearance: none;
+    width: 1.2rem;
+    height: 1.2rem;
+    aspect-ratio: 1 / 1;
+    border-radius: 4px;
+    border: 1px solid #E2E2E2;
+    background: #FFF;
+    cursor: pointer;
+    position: relative;
+    outline: none;
+
+    /* 체크되었을 때 상태 */
+    &:checked {
+      background-color: ${({ theme }) => theme.colors.Orange01};
+      border-color: ${({ theme }) => theme.colors.Orange01};
+      &::after {
+        content: '✔';
+        color: white;
+        font-size: 20px;
+        position: absolute;
+        top: 40%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+      }
+    }
+  }
 `;
 
 export const DivideLine = styled.div`
   width: 100%;
   height: 0.5px;
   background-color: rgba(192, 192, 192, 0.50);
-  border-bottom: 1px solid #c0c0c0;
+  border-bottom: 1px solid #EBEBEB;
 `;
 
 export const MenuList = styled.div`
@@ -177,6 +206,17 @@ export const TotalPrice = styled.div`
   }
 `;
 
+export const EmptyImage = styled.img`
+  width: 5rem !important; /* 이미지 크기 (적당히 조절 가능) */
+  height: auto;
+  opacity: 0.15; /* 투명도 조절 */
+  position: absolute;
+  top: 55%; /* 카드 중앙에 맞추기 위해 55% 정도로 설정 */
+  left: 50%;
+  transform: translate(-50%, -50%);
+  pointer-events: none; /* 이미지가 클릭 이벤트를 방해하지 않도록 설정 */
+`;
+
 // grid style
 export const GridWrapper = styled.div`
   position: relative;
@@ -185,7 +225,7 @@ export const GridWrapper = styled.div`
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 10px 20px 0;
+  padding: 5px 20px 0;
   box-sizing: border-box;
   user-select: none;
 `;
@@ -235,14 +275,29 @@ export const PagesTrack = styled.div<{
 /* ✅ 각 페이지: 트랙 대비 (100 / pageCount)% */
 export const PageGrid = styled.div<{ $pageCount: number }>`
   width: ${({ $pageCount }) => (100 / $pageCount)}%;
-  padding: 8px;
+  padding: 0.5rem 8px; // 기본 패딩 (작은 화면용)
   box-sizing: border-box;
 
   display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr)); /* 가로 5 */
-  grid-auto-rows: 1fr;                               /* 세로 동일 비율 */
+  grid-template-columns: repeat(5, minmax(0, 1fr)); 
+  grid-template-rows: repeat(3, auto); 
+  align-content: start; 
+  
   row-gap: 12px;
   column-gap: 12px;
+
+  min-height: 40rem; 
+  
+  // /* ✅ 가장 큰 화면 범위에서만 패딩 조정 */
+  // @media (min-width: 1366px) {
+  //   min-height: 52rem; 
+  //   padding-top: 1rem; // 0.5rem에서 2rem으로 상단 여백 확대
+  // }
+  /* ✅ 가장 큰 화면 범위에서만 패딩 조정 */
+  @media (min-width: 1366px) {
+    min-height: 52rem; 
+    padding-top: 1.2rem;
+  }
 `;
 
 /* 인디케이터 (중복 정의 없게 유지) */
@@ -251,13 +306,17 @@ export const PageIndicatorWrapper = styled.div`
   gap: 8px;
   justify-content: center;
   align-items: center;
-  height: 28px;
-  margin-top: 8px;
+  height: 20px;
+  margin-bottom: 2px;
+  @media (min-width: 1366px) {
+    height: 30px;
+    margin-top: 0.3rem;
+  }
 `;
 
 export const Dot = styled.div<{ $active: boolean }>`
-  width: ${({ $active }) => ($active ? "1.6rem" : "0.6rem")};
-  height: 0.6rem;
+  width: ${({ $active }) => ($active ? "2rem" : "0.4rem")};
+  height: 0.5rem;
   border-radius: 0.3rem;
   background-color: ${({ theme, $active }) =>
     $active ? theme.colors.Orange01 : theme.colors.Gray01};
