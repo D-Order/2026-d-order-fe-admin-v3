@@ -106,6 +106,15 @@ export const DivideLine = styled.div`
   border-bottom: 1px solid #EBEBEB;
 `;
 
+export const MenuContainer = styled.div`
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between; /* 위쪽(메뉴)과 아래쪽(더보기)을 양끝으로 찢음 */
+  flex-grow: 1; /* DivideLine 아래부터 TotalPrice 위까지의 공간을 모두 차지함 */
+  width: 100%;
+  margin-bottom: 2rem; /* TotalPrice가 absolute로 붙어있으므로 하단 여백 확보 */
+`;
+
 export const MenuList = styled.div`
   width: 100%;
   min-height: 7.9rem;
@@ -178,7 +187,6 @@ export const ToDetail = styled.div`
   color: ${({ theme }) => theme.colors.Orange01};
   font-size: 0.6rem;
   font-weight: 600;
-  margin-top: 6px;
   box-sizing: border-box;
   ${({ theme }) => css(theme.fonts.SemiBold10)};
   @media (min-width: 1180px) {

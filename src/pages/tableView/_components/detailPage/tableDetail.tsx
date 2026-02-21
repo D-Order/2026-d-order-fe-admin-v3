@@ -260,6 +260,7 @@ const TableDetail: React.FC<Props> = ({ data, onBack }) => {
               </div>
             ))
           )}
+          
         </S.MenuList>
       </S.DetailWrapper>
 

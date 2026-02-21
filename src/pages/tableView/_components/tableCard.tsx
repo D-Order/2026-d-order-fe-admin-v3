@@ -104,28 +104,31 @@ const TableCard: React.FC<Props> = ({ data, onSelect }) => {
       </S.TableInfo>
       
       <S.DivideLine />
-      
-      <S.MenuList>
-        
-        {data.orders.length === 0 && (
-          <S.EmptyImage src={ACCO} alt="빈 테이블" />
-        )}
+      <S.MenuContainer>
+        <S.MenuList>
+          
+          {data.orders.length === 0 && (
+            <S.EmptyImage src={ACCO} alt="빈 테이블" />
+          )}
 
-        {data.orders.slice(0, 3).map((order, idx) => (
-          <S.ItemRow key={idx}>
-            <S.MenuItem>
-              <p className="menuName">{order.menu}</p>
-              <p className="menuAmount">{order.quantity}</p>
-            </S.MenuItem>
-            <img
-              src={TABLEPAGE_CONSTANTS.TABLE.IMAGE.MENU_LINE}
-              alt="구분선"
-            />
-          </S.ItemRow>
-        ))}
-        
-        {data.orders.length >= 3 && <S.ToDetail>더보기</S.ToDetail>}
-      </S.MenuList>
+          {data.orders.slice(0, 3).map((order, idx) => (
+            <S.ItemRow key={idx}>
+              <S.MenuItem>
+                <p className="menuName">{order.menu}</p>
+                <p className="menuAmount">{order.quantity}</p>
+              </S.MenuItem>
+              <img
+                src={TABLEPAGE_CONSTANTS.TABLE.IMAGE.MENU_LINE}
+                alt="구분선"
+              />
+            </S.ItemRow>
+          ))}
+          
+        </S.MenuList>
+        {data.orders.length > 0 && <S.ToDetail>더보기</S.ToDetail>}
+
+      </S.MenuContainer>
+
 
       <S.TotalPrice>
         <p className="totalPrice">총 금액 {data.totalAmount.toLocaleString()}원</p>
