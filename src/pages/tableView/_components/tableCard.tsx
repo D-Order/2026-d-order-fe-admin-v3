@@ -3,6 +3,7 @@ import * as S from './tableComponents.styled';
 import { TABLEPAGE_CONSTANTS } from '../_constants/tableConstants';
 import ACCO from "@assets/images/character.svg";
 import { useState, useEffect } from 'react';
+import { useTableSelection } from '../../../context/TableSelectionContext';
 
 interface TableCardData {
   tableNumber: number;
@@ -21,6 +22,8 @@ interface Props {
 }
 
 const TableCard: React.FC<Props> = ({ data, onSelect }) => {
+  const { selectedTables, toggleTableSelection } = useTableSelection();
+  const isSelected = selectedTables.includes(data.tableNumber); 
   const formattedTableNum = `T ${String(data.tableNumber).padStart(2, '0')}`;
   const [elapsedTime, setElapsedTime] = useState<string>("00:00");
   
@@ -52,6 +55,10 @@ const TableCard: React.FC<Props> = ({ data, onSelect }) => {
     return `${hh}:${mm}`;
   };
 
+  const handleCheckboxChange = () => {
+    toggleTableSelection(data.tableNumber); // 🌟 체크 상태 토글
+  };
+
   // 실시간 업데이트 useEffect
   useEffect(() => {
     // 초기 실행
@@ -66,26 +73,29 @@ const TableCard: React.FC<Props> = ({ data, onSelect }) => {
   
   //!~!~!~!~!~!~!~!~!!!~!~!
   const handleCardClick = (e: React.MouseEvent) => {
-    if ((e.target as HTMLElement).tagName === 'INPUT') {
-      e.stopPropagation();
-      return;
-    }
+    if ((e.target as HTMLElement).tagName === 'INPUT') return;
+    
     if (data.orders.length === 0) {
-      e.stopPropagation();
       alert("주문 내역이 없는 테이블입니다.");
       return;
     }
-    if (onSelect) {
-      onSelect();
-    }
+    if (onSelect) onSelect();
   };
+  
+
 
   return (
-    <S.CardWrapper $isOverdue={data.isOverdue} onClick={handleCardClick}>
+    <S.CardWrapper 
+      $isOverdue={data.isOverdue} 
+      $isSelected={isSelected}
+      onClick={handleCardClick}
+    >
       <S.TableInfo $isOverdue={data.isOverdue}>
         <div style={{ display: 'flex', alignItems: 'center' }}>
           <input 
             type="checkbox" 
+            checked={isSelected}
+            onChange={handleCheckboxChange} // 🌟 토글 함수 연결
             onClick={(e) => e.stopPropagation()} 
           />
           <p className="tableNumber">{formattedTableNum}</p>

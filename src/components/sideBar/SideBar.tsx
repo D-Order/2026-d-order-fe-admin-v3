@@ -3,6 +3,8 @@ import { IMAGE_CONSTANTS } from "@constants/imageConstants";
 import { ROUTE_PATHS } from "@constants/routeConstants";
 import { useState, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
+import { useTableSelection } from "../../context/TableSelectionContext";
+
 //경로설정하고 useNavigate 추가하기
 
 import NavItem from "./_components/NavItem";
@@ -11,7 +13,7 @@ const SideBar = () => {
   const location = useLocation(); // 현재 경로 가져오기
   const navigate = useNavigate(); // navigate 훅 사용
   const [activeNav, setActiveNav] = useState(location.pathname); // 활성화된 네비게이션 상태
-
+  const { selectedTables, clearSelection } = useTableSelection(); //체크박스 선택 전역상태 가져오기
   useEffect(() => {
     setActiveNav(location.pathname);
   }, [location.pathname]);
@@ -70,6 +72,19 @@ const SideBar = () => {
           alt="dashboard"
         />
       </S.NavWrapper>
+      {/* 🌟 선택된 테이블이 있을 때만 버튼 노출 */}
+      {selectedTables.length > 0 && (
+        <S.ActionContainer>
+          <S.ActionButton onClick={() => console.log('초기화', selectedTables)}>
+            <img src={IMAGE_CONSTANTS.Broom_Icon}></img>
+            초기화
+          </S.ActionButton>
+          <S.ActionButton onClick={() => console.log('병합', selectedTables)}>
+            <img src={IMAGE_CONSTANTS.Merge_Icon}></img>
+            병합
+          </S.ActionButton>
+        </S.ActionContainer>
+      )}
     </S.SideBarWrapper>
   );
 };

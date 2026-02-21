@@ -1,37 +1,40 @@
 import styled, { css } from "styled-components";
 
-export const CardWrapper = styled.div<{ $isOverdue: boolean }>`
-  background-color: ${({ theme, $isOverdue }) =>
-    $isOverdue ? theme.colors.Point : theme.colors.Gray01};  
+//체크박스 반영
+export const CardWrapper = styled.div<{ $isOverdue: boolean; $isSelected: boolean }>`
+  background-color: ${({ theme, $isOverdue, $isSelected }) =>
+    $isSelected ? theme.colors.Gray01 : ($isOverdue ? theme.colors.Point : theme.colors.Gray01)};  
   color: ${({ theme }) => theme.colors.Black01};
+  
+  border: ${({ theme, $isSelected }) => 
+    $isSelected ? `2px solid ${theme.colors.Orange01}` : `2px solid ${theme.colors.Gray01}`};
+  box-shadow: ${({ $isSelected }) => 
+    $isSelected ? '0 0 8px 0 rgba(255, 110, 63, 0.20)' : 'none'};
   width: 8.5rem;
   height: 11.5rem;
-  
-  @media (min-width: 1180px) {
-    width: 10rem;
-    height: 12.2rem;
-  }
-
-  @media (min-width: 1366px) {
-    width: 12.4rem;
-    height: 16.2rem;
-  }
-
   border-radius: 0.8rem;
-  border: 1px solid ${({ theme }) => theme.colors.Gray01};
   padding: 0.8rem 0.7rem;
   display: flex;
   flex-direction: column;
   justify-content: flex-start;
   align-items: center;
   position: relative;
-
+  cursor: pointer;
+  transition: all 0.2s ease-in-out; 
+  @media (min-width: 1180px) {
+    width: 10rem;
+    height: 12.2rem;
+  }
+  @media (min-width: 1366px) {
+    width: 12.4rem;
+    height: 16.2rem;
+  }
   img {
     width: 100%;
   }
 `;
 
-
+// 만료 여부 반영
 export const TableInfo = styled.div<{ $isOverdue: boolean }>`
   width: 100%;
   display: flex;
@@ -39,6 +42,7 @@ export const TableInfo = styled.div<{ $isOverdue: boolean }>`
   align-items: center;
   margin-bottom: 0.65rem;
   .tableNumber {
+    margin-left:0.3rem;
     font-size: 0.8rem;
     font-weight: 700;
     ${({ theme }) => css(theme.fonts.Bold14)};
@@ -64,7 +68,7 @@ export const TableInfo = styled.div<{ $isOverdue: boolean }>`
     }
     
   }
-  /* 체크박스 커스텀 스타일 */
+
   input[type="checkbox"] {
     appearance: none;
     -webkit-appearance: none;
@@ -77,8 +81,8 @@ export const TableInfo = styled.div<{ $isOverdue: boolean }>`
     cursor: pointer;
     position: relative;
     outline: none;
-
-    /* 체크되었을 때 상태 */
+    margin: 0;
+    /* 체크됐을 때 스타일선언 */
     &:checked {
       background-color: ${({ theme }) => theme.colors.Orange01};
       border-color: ${({ theme }) => theme.colors.Orange01};

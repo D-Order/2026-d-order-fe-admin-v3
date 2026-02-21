@@ -47,3 +47,41 @@ export const NavItem = styled.button`
     height: 20px;
   }
 `;
+
+export const ActionContainer = styled.div`
+  position: fixed; 
+  bottom: 5rem; 
+  left: 0; 
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem; 
+  width: 92px; 
+  z-index: 10; 
+`;
+
+export const ActionButton = styled.button`
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 0.125rem;
+  width: 92px;
+  height: 80px;
+  border-radius: 0 16px 16px 0;
+  opacity: 0.92;
+  background: var(--Main-Orange-Orange_01, #FF6E3F); 
+  box-shadow: 0 0 8px 0 rgba(251, 107, 76, 0.20);
+  border: none;
+  color: ${({ theme }) => theme.colors.Bg};
+  ${({ theme }) => theme.fonts.Bold12};
+  cursor: pointer;
+  transition: all 0.2s ease-in-out;
+  &:hover {
+    opacity: 1;
+    transform: scale(1.01); 
+    //살짝 키우기
+  }
+  img{
+    width: 2rem;
+  }
+`;
