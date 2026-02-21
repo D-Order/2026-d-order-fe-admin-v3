@@ -1,11 +1,11 @@
-import "styled-components";
+import 'styled-components';
 
-declare module "styled-components" {
+declare module 'styled-components' {
   export interface DefaultTheme {
     colors: {
       // 배경색
       Bg: string;
-
+      Bg02: string;
       // 포인트 색상
       Point: string;
 
@@ -14,8 +14,10 @@ declare module "styled-components" {
       Error: string;
       Focused: string;
       // 메인 색상
+      Orange00: string;
       Orange01: string;
       Orange02: string;
+      Highlight: string;
       Gray01: string;
       Gray02: string;
 
@@ -29,6 +31,7 @@ declare module "styled-components" {
     };
     fonts: {
       // Title
+      Bold32: any;
       ExtraBold26: any;
       Bold26: any;
       ExtraBold24: any;
