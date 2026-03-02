@@ -2,15 +2,29 @@ import { Fragment } from 'react';
 import * as S from './OrderList.styled';
 
 import CategoryBox from '../categorybox/CategoryBox';
-import OrderBox, { type OrderBoxProps } from '../orderbox/OrderBox';
+import OrderBox, { type OrderBoxData } from '../orderbox/OrderBox';
 
 import SadAcoImage from '@assets/icons/SadAco.png';
 
+export type OpenTarget = { tableIndex: number; itemIndex: number } | null;
+
 export type OrderListProps = {
-  orders: OrderBoxProps[];
+  orders: OrderBoxData[];
+  openTarget: OpenTarget;
+  onOrderItemLongPress: (tableIndex: number, itemIndex: number) => void;
+  onStatusSelect: (
+    newStatus: import('../orderboxitem/OrderBoxItem').EditableStatus,
+  ) => void;
+  onModalClose: () => void;
 };
 
-export default function OrderList({ orders }: OrderListProps) {
+export default function OrderList({
+  orders,
+  openTarget,
+  onOrderItemLongPress,
+  onStatusSelect,
+  onModalClose,
+}: OrderListProps) {
   const isEmpty = orders.length === 0;
 
   return (
@@ -28,6 +42,11 @@ export default function OrderList({ orders }: OrderListProps) {
               tableNumber={order.tableNumber}
               tableTime={order.tableTime}
               items={order.items}
+              tableIndex={index}
+              openTarget={openTarget}
+              onOrderItemLongPress={onOrderItemLongPress}
+              onStatusSelect={onStatusSelect}
+              onModalClose={onModalClose}
             />
             {orders.length > 1 && index < orders.length - 1 && (
               <S.OrderBoxDivider />
