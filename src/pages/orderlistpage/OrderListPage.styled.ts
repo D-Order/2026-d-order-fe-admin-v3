@@ -3,6 +3,7 @@ import styled from 'styled-components';
 const PAGE_HEIGHT = 'calc(100vh - 63px)';
 
 export const Wrapper = styled.div`
+  position: relative;
   width: 100%;
   min-width: 0;
   height: ${PAGE_HEIGHT};

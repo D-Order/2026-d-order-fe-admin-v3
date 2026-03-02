@@ -1,22 +1,10 @@
 import * as S from './UserInfoForm.styled';
-import { instance } from '@services/instance';
 import { useState, useEffect, useCallback } from 'react';
 import CommonInput from '../inputs/CommonInput';
 import NextButton from '../buttons/NextButton';
 
-const isValidIdFormat = (id: string) => /^[a-z0-9]{6,12}$/.test(id);
 const isValidPasswordFormat = (pw: string) =>
   /^[a-zA-Z0-9!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?`~]{4,20}$/.test(pw);
-
-const checkDuplicateId = async (id: string): Promise<boolean> => {
-  const response = await instance.get('/api/v2/manager/check/', {
-    params: { username: id },
-  });
-  return response.data?.data?.is_available;
-};
-
-/** Storybook용: 설정 시 API 대신 해당 결과로 중복 확인 메시지 표시 */
-export type MockDuplicateCheck = 'success' | 'duplicate' | 'error';
 
 type Props = {
   formData: {
@@ -28,8 +16,9 @@ type Props = {
   onNext: () => void;
   userStage: number;
   setUserStage: React.Dispatch<React.SetStateAction<number>>;
-  /** Storybook용: 중복 확인 성공/실패/오류 분기 */
-  mockDuplicateCheck?: MockDuplicateCheck;
+  idError: string | null;
+  idSuccess: string | null;
+  resetIdCheck: () => void;
 };
 
 const UserInfoForm = ({
@@ -38,13 +27,11 @@ const UserInfoForm = ({
   onNext,
   userStage,
   setUserStage,
-  mockDuplicateCheck,
+  idError,
+  idSuccess,
+  resetIdCheck,
 }: Props) => {
   const { userId, password, confirmPassword } = formData;
-
-  // 메시지 상태
-  const [idError, setIdError] = useState<string | null>(null);
-  const [idSuccess, setIdSuccess] = useState<string | null>(null);
 
   const [pwError, setPwError] = useState<string | null>(null);
   const [pwSuccess, setPwSuccess] = useState<string | null>(null);
@@ -52,40 +39,7 @@ const UserInfoForm = ({
   const [confirmPwError, setConfirmPwError] = useState<string | null>(null);
   const [confirmPwSuccess, setConfirmPwSuccess] = useState<string | null>(null);
 
-  // --- 1) 아이디: 즉시 형식검사 + 디바운스 중복검사 ---
-  useEffect(() => {
-    // 매 입력마다 초기화
-    setIdError(null);
-    setIdSuccess(null);
-
-    if (!userId) return; // 빈값이면 아무 메시지 X
-
-    if (!isValidIdFormat(userId)) {
-      setIdError('6~12자 이내의 영문 소문자, 숫자를 입력해 주세요.');
-      return;
-    }
-
-    // 형식 OK이면 디바운스로 서버중복검사 (또는 Storybook 목업)
-    const timer = setTimeout(async () => {
-      if (mockDuplicateCheck !== undefined) {
-        if (mockDuplicateCheck === 'success') setIdSuccess('사용 가능한 아이디예요.');
-        else if (mockDuplicateCheck === 'duplicate') setIdError('이미 존재하는 아이디예요.');
-        else setIdError('중복 확인 중 오류가 발생했습니다.');
-        return;
-      }
-      try {
-        const available = await checkDuplicateId(userId);
-        if (available) setIdSuccess('사용 가능한 아이디예요.');
-        else setIdError('이미 존재하는 아이디예요.');
-      } catch {
-        setIdError('중복 확인 중 오류가 발생했습니다.');
-      }
-    }, 400);
-
-    return () => clearTimeout(timer);
-  }, [userId, mockDuplicateCheck]);
-
-  // --- 2) 비밀번호: 즉시 형식검사 ---
+  // --- 1) 비밀번호: 즉시 형식검사 ---
   useEffect(() => {
     setPwError(null);
     setPwSuccess(null);
@@ -131,7 +85,7 @@ const UserInfoForm = ({
     if (userStage === 1) {
       if (!isIdValid) return;
       setUserStage(2);
-      setIdSuccess(null);
+      resetIdCheck();
     } else if (userStage === 2) {
       if (!isPwValid) return;
       setUserStage(3);
@@ -140,7 +94,7 @@ const UserInfoForm = ({
       if (!isConfirmValid) return;
       onNext();
     }
-  }, [userStage, setUserStage, onNext, isIdValid, isPwValid, isConfirmValid]);
+  }, [userStage, setUserStage, onNext, isIdValid, isPwValid, isConfirmValid, resetIdCheck]);
 
   return (
     <S.Wrapper>
@@ -155,13 +109,9 @@ const UserInfoForm = ({
         helperText="6~12자 이내의 영문 소문자, 숫자를 입력해 주세요."
         onClear={() => {
           onChange('userId', '');
-          setIdError(null);
-          setIdSuccess(null);
+          resetIdCheck();
         }}
-        onResetValidation={() => {
-          setIdError(null);
-          setIdSuccess(null);
-        }}
+        onResetValidation={resetIdCheck}
         isVisible={userStage >= 1}
         disabled={userStage !== 1}
       />

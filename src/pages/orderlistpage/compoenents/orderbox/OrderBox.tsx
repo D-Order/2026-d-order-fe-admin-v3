@@ -1,8 +1,12 @@
 import * as S from './OrderBox.styled';
 import OrderBoxItem from '../orderboxitem/OrderBoxItem';
 import type { OrderStatus } from '../orderboxitem/OrderBoxItem.styled';
+import type { EditableStatus } from '../orderboxitem/OrderBoxItem';
+
+export type OpenTarget = { tableIndex: number; itemIndex: number } | null;
 
 export type OrderItem = {
+  id?: number; // order_menu_id (ADMIN_ORDER_UPDATE 매칭용)
   imageUrl?: string;
   set_menu: boolean;
   menuName: string;
@@ -10,16 +14,29 @@ export type OrderItem = {
   status: OrderStatus;
 };
 
-export type OrderBoxProps = {
+export type OrderBoxData = {
   tableNumber: number | string;
   tableTime?: string;
   items: OrderItem[];
+};
+
+export type OrderBoxProps = OrderBoxData & {
+  tableIndex: number;
+  openTarget: OpenTarget;
+  onOrderItemLongPress: (tableIndex: number, itemIndex: number) => void;
+  onStatusSelect: (newStatus: EditableStatus) => void;
+  onModalClose: () => void;
 };
 
 export default function OrderBox({
   tableNumber,
   tableTime = '00분전',
   items,
+  tableIndex,
+  openTarget,
+  onOrderItemLongPress,
+  onStatusSelect,
+  onModalClose,
 }: OrderBoxProps) {
   return (
     <S.OrderBoxWrapper>
@@ -28,14 +45,23 @@ export default function OrderBox({
         <S.OrderBoxTableTime>{tableTime}</S.OrderBoxTableTime>
       </S.OrderBoxHeader>
       <S.OrderBoxTableContent>
-        {items.map((item, index) => (
+        {items.map((item, itemIndex) => (
           <OrderBoxItem
-            key={index}
+            key={item.id ?? itemIndex}
             imageUrl={item.imageUrl}
             set_menu={item.set_menu}
             menuName={item.menuName}
             quantity={item.quantity}
             status={item.status}
+            onLongPress={() => onOrderItemLongPress(tableIndex, itemIndex)}
+            isModalOpen={
+              openTarget !== null &&
+              openTarget.tableIndex === tableIndex &&
+              openTarget.itemIndex === itemIndex
+            }
+            isAnyModalOpen={openTarget !== null}
+            onStatusSelect={onStatusSelect}
+            onModalClose={onModalClose}
           />
         ))}
       </S.OrderBoxTableContent>
