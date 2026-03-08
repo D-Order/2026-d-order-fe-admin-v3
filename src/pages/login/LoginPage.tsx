@@ -11,6 +11,7 @@ import NextButton from './_components/buttons/NextButton';
 import LoginImages from './LoginImages';
 
 import UserService from '@services/UserService';
+import { useAuthStore } from '../../stores/authStore';
 
 /** Storybook/테스트용: 설정 시 실제 API 대신 해당 결과 분기만 보여줌 */
 export type LoginPageProps = {
@@ -19,6 +20,7 @@ export type LoginPageProps = {
 
 const LoginPage = ({ mockLogin }: LoginPageProps = {}) => {
   const navigate = useNavigate();
+  const setAuth = useAuthStore((s) => s.setAuth);
   const [formData, setFormData] = useState({
     username: '',
     password: '',
@@ -26,29 +28,31 @@ const LoginPage = ({ mockLogin }: LoginPageProps = {}) => {
 
   const handleLogin = async () => {
     try {
-      let response;
+      let response: {
+        message?: string;
+        data: { username: string; booth_id: number };
+        token?: { access: string; refresh?: string };
+      };
 
       if (mockLogin !== undefined) {
         if (mockLogin === 'success') {
           response = {
+            message: '로그인 성공',
+            data: { username: formData.username || 'mock-user', booth_id: 1 },
             token: { access: 'mock-token' },
-            data: { manager_id: 1, booth_id: 1 },
           };
         } else {
           throw new Error('로그인 실패했습니다. 다시 시도해 주세요.');
         }
       } else {
-        response = await UserService.login(formData);
+        response = await UserService.loginV3(formData);
       }
 
+      const { username, booth_id } = response.data;
       const accessToken = response.token?.access;
-      const managerId = response.data.manager_id;
+      const refreshToken = response.token?.refresh;
 
-      if (!accessToken || !managerId) {
-        throw new Error('로그인 응답이 올바르지 않습니다.');
-      }
-
-      localStorage.setItem('accessToken', accessToken);
+      setAuth({ username, booth_id, accessToken, refreshToken });
       navigate(ROUTE_PATHS.HOME);
     } catch (err) {
       alert('로그인 실패했습니다. 다시 시도해 주세요.');

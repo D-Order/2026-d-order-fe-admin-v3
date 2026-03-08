@@ -15,24 +15,28 @@ const fontGenerator = (
 const colors = {
   // 배경색
   Bg: '#FAFAFA',
-
+  Bg02: '#F5EBE5',
   // 포인트 색상
   Point: '#FFD232',
 
   //상태 색상
   Success: '#0F851A', //초록색
   Error: '#F03F40', //빨간색
-  Focused: '#8A8A8A', //짙은회색
+  Focused: '#C0C0C0',
+  //Focused: '#8A8A8A', //짙은회색
 
   // 메인 색상
+  Orange00: '#FFF0EC',
   Orange01: '#FF6E3F',
-  Orange02: '#FFF0EC',
+  Orange02: '#E66339',
+  Highlight: '#BE5D3A',
   Gray01: '#F2F2F2',
   Gray02: '#AFAFAF',
 
   // 텍스트 색상
   Black01: '#2A2A2A',
-  Black02: '#C0C0C0',
+  Black02: '#414141',
+  //Black02: '#C0C0C0',
 
   // 기타 색상
   White: '#FFFFFF',
@@ -43,6 +47,7 @@ const theme = {
   colors,
 
   fonts: {
+    Bold32: fontGenerator('SUIT-Bold', '32px', '700', 'auto', 'normal'),
     // Title
     ExtraBold26: fontGenerator(
       'SUIT-ExtraBold',
