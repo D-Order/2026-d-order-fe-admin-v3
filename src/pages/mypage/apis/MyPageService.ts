@@ -1,5 +1,5 @@
-import { AxiosResponse } from "axios";
-import { instance } from "../../../services/instance";
+import { AxiosResponse } from 'axios';
+import { instance } from '../../../services/instance';
 
 export interface My {
   user: number;
@@ -25,7 +25,7 @@ class MyPageService {
   static async getMyPage(): Promise<My> {
     try {
       const response: AxiosResponse<MyResponse> = await instance.get(
-        "/api/manager/mypage/"
+        '/api/manager/mypage/',
       );
 
       return response.data.data;
@@ -38,7 +38,7 @@ class MyPageService {
     try {
       const response: AxiosResponse<MyResponse> = await instance.patch(
         `/api/manager/mypage/`,
-        data
+        data,
       );
       return response.data.data;
     } catch (error) {
@@ -52,8 +52,8 @@ class MyPageService {
       const response = await instance.get(
         `/api/booth/qr-download/?booth_id=${booth_id}`,
         {
-          responseType: "blob",
-        }
+          responseType: 'blob',
+        },
       );
 
       // 응답 데이터가 Blob인지 확인
@@ -63,7 +63,7 @@ class MyPageService {
       const url = URL.createObjectURL(blob);
 
       // 다운로드 링크 생성 및 클릭
-      const a = document.createElement("a");
+      const a = document.createElement('a');
       a.href = url;
       a.download = `qr-code-${booth_id}.png`;
       document.body.appendChild(a);
@@ -84,19 +84,19 @@ class MyPageService {
   static async logout(): Promise<void> {
     try {
       // refresh 토큰 가져오기 시도
-      const refreshToken = localStorage.getItem("refreshToken");
+      const refreshToken = localStorage.getItem('refreshToken');
 
       // API 요청 데이터 준비
       const payload = refreshToken ? { refresh: refreshToken } : {};
 
       // 로그아웃 API 호출
-      const response = await instance.post("/api/manager/logout/", payload);
+      const response = await instance.post('/api/manager/logout/', payload);
 
       // 응답 확인
       if (response.status === 200) {
         // 로컬 스토리지에서 토큰 제거
-        localStorage.removeItem("accessToken");
-        localStorage.removeItem("refreshToken");
+        localStorage.removeItem('accessToken');
+        localStorage.removeItem('refreshToken');
 
         return;
       } else {
@@ -104,8 +104,8 @@ class MyPageService {
       }
     } catch (error) {
       // 에러가 발생해도 토큰은 제거
-      localStorage.removeItem("accessToken");
-      localStorage.removeItem("refreshToken");
+      localStorage.removeItem('accessToken');
+      localStorage.removeItem('refreshToken');
 
       throw error;
     }
