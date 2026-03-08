@@ -7,12 +7,6 @@ export type OrderStatus =
   | '서빙수락'
   | '조리완료';
 
-/** hex 색상에 투명도 적용. 예: withAlpha('#FF6E3F', 0.2) → 20% 불투명 */
-const withAlpha = (hex: string, alpha: number) =>
-  `${hex}${Math.round(alpha * 255)
-    .toString(16)
-    .padStart(2, '0')}`;
-
 const statusStyles: Record<OrderStatus, { bg: string; text: string }> = {
   조리중: {
     bg: '#FFE2D9',
