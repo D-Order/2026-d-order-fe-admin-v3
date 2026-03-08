@@ -14,8 +14,8 @@ export const Label = styled.div<{ $error: boolean; $success: boolean }>`
     $error
       ? theme.colors.Error
       : $success
-      ? theme.colors.Success
-      : theme.colors.Focused};
+        ? theme.colors.Success
+        : theme.colors.Focused};
 `;
 
 export const InputWrapper = styled.div`
@@ -37,8 +37,8 @@ export const StyledInput = styled.input<{ $error: boolean; $success: boolean }>`
       $error
         ? theme.colors.Error
         : $success
-        ? theme.colors.Success
-        : 'rgba(192, 192, 192, 0.50)'};
+          ? theme.colors.Success
+          : 'rgba(192, 192, 192, 0.50)'};
 
   border-radius: 25px;
 
@@ -52,7 +52,7 @@ export const StyledInput = styled.input<{ $error: boolean; $success: boolean }>`
 
   &::placeholder {
     ${({ theme }) => theme.fonts.SemiBold16};
-    color: ${({ theme }) => theme.colors.Black02};
+    color: ${({ theme }) => theme.colors.Focused};
   }
 
   &:focus {

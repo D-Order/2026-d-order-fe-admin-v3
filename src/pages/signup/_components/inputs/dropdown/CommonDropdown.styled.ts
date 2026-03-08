@@ -13,7 +13,7 @@ export const Label = styled.label`
   color: ${({ theme }) => theme.colors.Focused};
 `;
 
-export const CustomBox = styled.div<{ $isOpen: boolean, $radius?: string; }>`
+export const CustomBox = styled.div<{ $isOpen: boolean; $radius?: string }>`
   ${({ theme }) => theme.fonts.SemiBold16};
   box-sizing: border-box;
   padding: 14px;
@@ -39,7 +39,7 @@ export const CustomBox = styled.div<{ $isOpen: boolean, $radius?: string; }>`
     cursor: pointer;
 
     &::placeholder {
-      color: ${({ theme }) => theme.colors.Black02};
+      color: ${({ theme }) => theme.colors.Focused};
     }
   }
 `;
@@ -71,7 +71,7 @@ export const Option = styled.li`
   color: ${({ theme }) => theme.colors.Black01};
 
   &:hover {
-    background-color: ${({ theme }) => theme.colors.Orange02};
+    background-color: ${({ theme }) => theme.colors.Orange00};
     color: ${({ theme }) => theme.colors.Orange01};
   }
 `;

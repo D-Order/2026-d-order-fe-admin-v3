@@ -10,7 +10,7 @@ import SideBar from '@components/sideBar/SideBar';
 
 const DefaultLayout = () => {
   // 개발 중 임시로 주석 처리
-  // useAuthRedirect();
+  useAuthRedirect();
   const location = useLocation();
 
   // 라우트 변경 감지를 위한 로그 (디버깅용)

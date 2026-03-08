@@ -1,10 +1,10 @@
 // src/components/Header/hooks/useBoothRevenue.ts
 
-import { useState, useEffect, useRef, useCallback } from "react";
-import BoothService from "@services/BoothService";
+import { useState, useEffect, useRef, useCallback } from 'react';
+import BoothService from '@services/BoothService';
 
 const useBoothRevenue = () => {
-  const [boothName, setBoothName] = useState<string>("부스 로딩 중...");
+  const [boothName, setBoothName] = useState<string>('부스 로딩 중...');
   const [totalRevenues, setTotalRevenues] = useState<number>(0);
   const [error, setError] = useState<string | null>(null);
 
@@ -20,7 +20,7 @@ const useBoothRevenue = () => {
   };
 
   const shouldReconnect = () =>
-    document.visibilityState === "visible" && navigator.onLine;
+    document.visibilityState === 'visible' && navigator.onLine;
 
   const closeSocket = useCallback(() => {
     clearRetryTimer();
@@ -38,9 +38,9 @@ const useBoothRevenue = () => {
   }, []);
 
   const connect = useCallback(() => {
-    const accessToken = localStorage.getItem("accessToken");
+    const accessToken = localStorage.getItem('accessToken');
     if (!accessToken) {
-      setError("로그인이 필요합니다.");
+      setError('로그인이 필요합니다.');
       return;
     }
     if (!shouldReconnect()) return;
@@ -67,19 +67,19 @@ const useBoothRevenue = () => {
       try {
         const message = JSON.parse(event.data);
         if (
-          message?.type === "REVENUE_SNAPSHOT" ||
-          message?.type === "REVENUE_UPDATE"
+          message?.type === 'REVENUE_SNAPSHOT' ||
+          message?.type === 'REVENUE_UPDATE'
         ) {
           const next = Number(message.totalRevenue) || 0;
           setTotalRevenues(next);
         }
       } catch (e) {
-        console.error("🔴 [REVENUE] 메시지 파싱 오류:", e);
+        console.error('🔴 [REVENUE] 메시지 파싱 오류:', e);
       }
     };
 
     ws.onerror = () => {
-      setError("매출 실시간 업데이트 중 오류가 발생했습니다.");
+      setError('매출 실시간 업데이트 중 오류가 발생했습니다.');
     };
 
     ws.onclose = () => {
@@ -98,32 +98,38 @@ const useBoothRevenue = () => {
     let aborted = false;
 
     const fetchBoothName = async () => {
+      const boothId =
+        localStorage.getItem('Booth-ID') ?? localStorage.getItem('boothId');
+      if (!boothId) {
+        setError('부스 정보가 없습니다.');
+        return;
+      }
       try {
-        const response = await BoothService.getBoothRevenue();
+        const response = await BoothService.getBoothName(boothId);
         if (aborted) return;
         if (response?.data?.booth_name) {
           setError(null);
           setBoothName(response.data.booth_name);
         } else {
-          setError(response?.message || "부스 정보를 가져오지 못했습니다.");
+          setError(response?.message ?? '부스 정보를 가져오지 못했습니다.');
         }
       } catch {
-        if (!aborted) setError("부스 정보를 가져오지 못했습니다.");
+        if (!aborted) setError('부스 정보를 가져오지 못했습니다.');
       }
     };
 
     fetchBoothName();
 
     const handleVisible = () => {
-      if (document.visibilityState === "visible") {
+      if (document.visibilityState === 'visible') {
         fetchBoothName();
       }
     };
-    document.addEventListener("visibilitychange", handleVisible);
+    document.addEventListener('visibilitychange', handleVisible);
 
     return () => {
       aborted = true;
-      document.removeEventListener("visibilitychange", handleVisible);
+      document.removeEventListener('visibilitychange', handleVisible);
     };
   }, []);
 
@@ -131,7 +137,7 @@ const useBoothRevenue = () => {
     connect();
 
     const handleVisibility = () => {
-      if (document.visibilityState === "visible") {
+      if (document.visibilityState === 'visible') {
         connect();
       } else {
         closeSocket();
@@ -140,14 +146,14 @@ const useBoothRevenue = () => {
     const handleOnline = () => connect();
     const handleOffline = () => closeSocket();
 
-    document.addEventListener("visibilitychange", handleVisibility);
-    window.addEventListener("online", handleOnline);
-    window.addEventListener("offline", handleOffline);
+    document.addEventListener('visibilitychange', handleVisibility);
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
 
     return () => {
-      document.removeEventListener("visibilitychange", handleVisibility);
-      window.removeEventListener("online", handleOnline);
-      window.removeEventListener("offline", handleOffline);
+      document.removeEventListener('visibilitychange', handleVisibility);
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
       clearRetryTimer();
       closeSocket();
     };

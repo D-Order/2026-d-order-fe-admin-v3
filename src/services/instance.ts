@@ -28,30 +28,25 @@ instance.interceptors.request.use(
     }
     return config;
   },
-  (error: AxiosError) => Promise.reject(error)
+  (error: AxiosError) => Promise.reject(error),
 );
 
 let isRefreshing = false;
 let failedQueue: {
-  resolve: (token: string) => void;
+  resolve: (token: string | null) => void;
   reject: (err: any) => void;
 }[] = [];
 
 const processQueue = (token: string | null, error: AxiosError | null) => {
   failedQueue.forEach(({ resolve, reject }) => {
-    if (token) resolve(token);
-    else reject(error);
+    if (error) reject(error);
+    else resolve(token);
   });
   failedQueue = [];
 };
 
-const setAccessToken = (token: string) => {
-  localStorage.setItem('accessToken', token);
-};
-
 const clearTokens = () => {
   localStorage.removeItem('accessToken');
-  localStorage.removeItem('refreshToken');
 };
 
 const redirectToLogin = () => {
@@ -71,7 +66,7 @@ instance.interceptors.response.use(
       clearTokens();
       redirectToLogin();
       return Promise.reject(
-        new Error('리프레시 토큰이 만료되었습니다. 다시 로그인해주세요.')
+        new Error('리프레시 토큰이 만료되었습니다. 다시 로그인해주세요.'),
       );
     }
 
@@ -82,7 +77,7 @@ instance.interceptors.response.use(
       clearTokens();
       redirectToLogin();
       return Promise.reject(
-        new Error('토큰이 만료되었습니다. 다시 로그인해주세요.')
+        new Error('토큰이 만료되었습니다. 다시 로그인해주세요.'),
       );
     }
 
@@ -90,8 +85,9 @@ instance.interceptors.response.use(
       if (isRefreshing) {
         return new Promise((resolve, reject) => {
           failedQueue.push({
-            resolve: (token: string) => {
-              originalRequest.headers['Authorization'] = `Bearer ${token}`;
+            resolve: (token: string | null) => {
+              if (token)
+                originalRequest.headers['Authorization'] = `Bearer ${token}`;
               resolve(instance(originalRequest));
             },
             reject,
@@ -106,25 +102,15 @@ instance.interceptors.response.use(
 
       try {
         if (isV3Request) {
-          const refreshToken = localStorage.getItem('refreshToken');
-          if (!refreshToken) throw new Error('refresh 토큰이 없습니다.');
-
-          const data = await UserService.refreshTokenV3(refreshToken);
-          const newAccessToken = data.access;
-          setAccessToken(newAccessToken);
-          if (data.refresh) {
-            localStorage.setItem('refreshToken', data.refresh);
-          }
-          processQueue(newAccessToken, null);
-
-          originalRequest.headers['Authorization'] = `Bearer ${newAccessToken}`;
+          await UserService.refreshTokenV3();
+          processQueue(null, null);
           return instance(originalRequest);
         } else {
           const res = await instance.get('/api/v2/manager/auth/');
           const newAccessToken = res.data?.data?.access;
           if (!newAccessToken) throw new Error('토큰이 응답에 없습니다.');
 
-          setAccessToken(newAccessToken);
+          localStorage.setItem('accessToken', newAccessToken);
           processQueue(newAccessToken, null);
 
           originalRequest.headers['Authorization'] = `Bearer ${newAccessToken}`;
@@ -141,7 +127,7 @@ instance.interceptors.response.use(
     }
 
     return Promise.reject(error);
-  }
+  },
 );
 
 //이미지처리로직 수정
@@ -163,7 +149,7 @@ instatnceWithImg.interceptors.request.use(
     }
     return config;
   },
-  (error: AxiosError) => Promise.reject(error)
+  (error: AxiosError) => Promise.reject(error),
 );
 
 // 응답 인터셉터 - 401 시 instance와 동일하게 v3/v2 refresh 후 재시도
@@ -179,7 +165,7 @@ instatnceWithImg.interceptors.response.use(
       clearTokens();
       redirectToLogin();
       return Promise.reject(
-        new Error('리프레시 토큰이 만료되었습니다. 다시 로그인해주세요.')
+        new Error('리프레시 토큰이 만료되었습니다. 다시 로그인해주세요.'),
       );
     }
 
@@ -190,7 +176,7 @@ instatnceWithImg.interceptors.response.use(
       clearTokens();
       redirectToLogin();
       return Promise.reject(
-        new Error('토큰이 만료되었습니다. 다시 로그인해주세요.')
+        new Error('토큰이 만료되었습니다. 다시 로그인해주세요.'),
       );
     }
 
@@ -198,8 +184,9 @@ instatnceWithImg.interceptors.response.use(
       if (isRefreshing) {
         return new Promise((resolve, reject) => {
           failedQueue.push({
-            resolve: (token: string) => {
-              originalRequest.headers['Authorization'] = `Bearer ${token}`;
+            resolve: (token: string | null) => {
+              if (token)
+                originalRequest.headers['Authorization'] = `Bearer ${token}`;
               resolve(instatnceWithImg(originalRequest));
             },
             reject,
@@ -214,25 +201,15 @@ instatnceWithImg.interceptors.response.use(
 
       try {
         if (isV3Request) {
-          const refreshToken = localStorage.getItem('refreshToken');
-          if (!refreshToken) throw new Error('refresh 토큰이 없습니다.');
-
-          const data = await UserService.refreshTokenV3(refreshToken);
-          const newAccessToken = data.access;
-          setAccessToken(newAccessToken);
-          if (data.refresh) {
-            localStorage.setItem('refreshToken', data.refresh);
-          }
-          processQueue(newAccessToken, null);
-
-          originalRequest.headers['Authorization'] = `Bearer ${newAccessToken}`;
+          await UserService.refreshTokenV3();
+          processQueue(null, null);
           return instatnceWithImg(originalRequest);
         } else {
           const res = await instance.get('/api/v2/manager/auth/');
           const newAccessToken = res.data?.data?.access;
           if (!newAccessToken) throw new Error('토큰이 응답에 없습니다.');
 
-          setAccessToken(newAccessToken);
+          localStorage.setItem('accessToken', newAccessToken);
           processQueue(newAccessToken, null);
 
           originalRequest.headers['Authorization'] = `Bearer ${newAccessToken}`;
@@ -253,5 +230,5 @@ instatnceWithImg.interceptors.response.use(
     }
 
     return Promise.reject(error);
-  }
+  },
 );

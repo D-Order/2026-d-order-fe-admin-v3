@@ -5,7 +5,7 @@ import TabTitle, {
 } from '@components/OperatorComponent/TabTitle/TabTitle';
 
 export default function CategoryBox() {
-  const [selectedValue, setSelectedValue] = useState('tab-0');
+  const [, setSelectedValue] = useState('tab-0');
 
   const tabs: TabItem[] = [
     { value: 'tab-0', status: 'click', type: 'tab-0', label: 'tab-0' },
