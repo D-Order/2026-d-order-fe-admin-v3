@@ -35,6 +35,8 @@ export interface SignupRequestV3 {
 export interface SignupResponseV3 {
   message: string;
   data: { username: string; booth_id: number };
+  /** 회원가입 직후 로그인 처리 시 토큰을 내려주는 경우 */
+  token?: { access: string; refresh?: string };
 }
 
 /** 오류 시 서버 응답 (필드별 메시지 배열) */
@@ -143,13 +145,12 @@ const UserService = {
     return response.data;
   },
 
-  /** v3: POST /api/v3/django/auth/refresh/ - Access Token 재발급 (refresh 토큰만 필요) */
-  refreshTokenV3: async (
-    refreshToken: string
-  ): Promise<RefreshResponseV3> => {
+  /** v3: POST /api/v3/django/auth/refresh/ - Access Token 재발급. refresh는 쿠키로만 전달(인자 없으면 body 비움, withCredentials로 쿠키 전송) */
+  refreshTokenV3: async (refreshToken?: string): Promise<RefreshResponseV3> => {
+    const body = refreshToken != null ? { refresh: refreshToken } satisfies RefreshRequestV3 : {};
     const response = await instance.post<RefreshResponseV3>(
       '/api/v3/django/auth/refresh/',
-      { refresh: refreshToken } satisfies RefreshRequestV3,
+      body,
     );
     if (!response.data?.access) {
       throw new Error('토큰 재발급 응답이 올바르지 않습니다.');
