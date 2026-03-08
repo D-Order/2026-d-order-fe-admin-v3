@@ -1,4 +1,4 @@
-import styled from "styled-components";
+import styled from 'styled-components';
 
 export const Wrapper = styled.form`
   min-width: 600px;
@@ -55,7 +55,7 @@ export const ele = styled.div`
     align-items: center;
     gap: 10px;
   }
-  input[type="radio"] {
+  input[type='radio'] {
     -webkit-appearance: none; // 웹킷 브라우저에서 기본 스타일 제거
     -moz-appearance: none; // 모질라 브라우저에서 기본 스타일 제거
     appearance: none; // 기본 브라우저에서 기본 스타일 제거
@@ -68,7 +68,7 @@ export const ele = styled.div`
   }
 
   // 체크될 시에, 변화되는 스타일 설정
-  input[type="radio"]:checked {
+  input[type='radio']:checked {
     background-color: ${({ theme }) =>
       theme.colors.Orange01}; // 체크 시 내부 원으로 표시될 색상
     border: 3px solid white; // 테두리가 아닌, 테두리와 원 사이의 색상
@@ -103,7 +103,7 @@ export const inputText = styled.input`
   ${({ theme }) => theme.fonts.SemiBold16}
 
   &::placeholder {
-    color: ${({ theme }) => theme.colors.Black02};
+    color: ${({ theme }) => theme.colors.Focused};
   }
 
   &.error {
