@@ -11,6 +11,15 @@ type PatchMsg = { type: typeof TYPE_PATCH; data: Partial<DashboardData> };
 type ErrMsg = { type: typeof TYPE_ERROR; code: number; message: string };
 type WsMsg = InitMsg | PatchMsg | ErrMsg | any;
 
+function toWebSocketOrigin(raw: string): string {
+  const b = raw.trim().replace(/\/+$/, "");
+  if (!b) return "";
+  if (b.startsWith("wss://") || b.startsWith("ws://")) return b;
+  if (b.startsWith("https://")) return b.replace("https://", "wss://");
+  if (b.startsWith("http://")) return b.replace("http://", "ws://");
+  return "";
+}
+
 export default function useStatisticsWSLite({
   onInit,
   onPatch,
@@ -29,9 +38,9 @@ export default function useStatisticsWSLite({
       return;
     }
 
-    const base = (import.meta.env.VITE_WS_URL || "").replace(/\/$/, "");
+    const base = toWebSocketOrigin(import.meta.env.VITE_WS_URL || "");
     if (!base) {
-      console.error("[WS STAT] VITE_WS_URL 비어있음");
+      console.error("[WS STAT] VITE_WS_URL 비어있거나 유효한 WS 오리진이 아님");
       return;
     }
 
