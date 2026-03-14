@@ -1,6 +1,5 @@
 import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ROUTE_PATHS } from '@constants/routeConstants';
 
 /**
  * 보호된 라우트에서 사용.
@@ -14,7 +13,7 @@ const useAuthRedirect = () => {
     const boothId =
       localStorage.getItem('Booth-ID') ?? localStorage.getItem('boothId');
     if (!boothId) {
-      navigate(ROUTE_PATHS.INIT);
+      // navigate(ROUTE_PATHS.INIT);
     }
   }, [navigate]);
 };
