@@ -13,9 +13,12 @@ import {
   isAdminOrderCompletedMessage,
   isAdminOrderCancelledMessage,
   isMenuAggregationMessage,
+  getOrderWsErrorInfo,
 } from '../types/orderManagementWs';
 
 const AUTH_FAILURE_CLOSE_CODE = 4001;
+/** JWT/세션 없음 (Django AdminOrderManagementConsumer._authenticate) */
+const NO_BOOTH_CLOSE_CODE = 4003;
 
 export type MenuAggregationCallback = (
   food: { menuName: string; quantity: number }[],
@@ -44,7 +47,18 @@ export function useOrderManagementWebSocket(
     const ws = new WebSocket(url);
     wsRef.current = ws;
 
+    /** StrictMode 이중 effect 시 CONNECTING 상태에서 close() 하면 브라우저 경고가 남 — 언마운트면 open 직후에만 닫음 */
+    let aborted = false;
+
     ws.onopen = () => {
+      if (aborted) {
+        try {
+          ws.close(1000, 'unmount');
+        } catch {
+          /* noop */
+        }
+        return;
+      }
       setIsConnected(true);
       console.log('[OrderManagementWS] 연결됨');
     };
@@ -54,6 +68,19 @@ export function useOrderManagementWebSocket(
         const msg = JSON.parse(event.data as string);
         const type = (msg && typeof msg.type === 'string' && msg.type) || '(unknown)';
         console.log('[OrderManagementWS] 수신:', type, msg);
+        const errInfo = getOrderWsErrorInfo(msg);
+        if (errInfo) {
+          console.error('[OrderManagementWS] error payload', errInfo);
+          const codeStr = errInfo.code != null ? String(errInfo.code) : '';
+          if (
+            errInfo.code === 'AUTH_ERROR' ||
+            codeStr === '401' ||
+            errInfo.code === 401
+          ) {
+            window.location.href = '/login';
+          }
+          return;
+        }
         if (isAdminOrderSnapshotMessage(msg)) {
           const next = mapSnapshotToOrderBoxData(msg.data.orders);
           setOrdersRef.current(next);
@@ -94,6 +121,12 @@ export function useOrderManagementWebSocket(
         window.location.href = '/login';
         return;
       }
+      if (e.code === NO_BOOTH_CLOSE_CODE) {
+        console.warn(
+          '[OrderManagementWS] close 4003 — 로그인은 되었으나 부스(booth) 미연결. 계정/DB 확인.',
+        );
+        return;
+      }
       if (e.code === 1006) {
         console.warn(
           '[OrderManagementWS] 1006 Abnormal Closure — 연결이 정상 종료되지 않았습니다. 확인할 것: ' +
@@ -107,9 +140,15 @@ export function useOrderManagementWebSocket(
     };
 
     return () => {
-      try {
-        ws.close(1000, 'unmount');
-      } catch {}
+      aborted = true;
+      if (ws.readyState === WebSocket.OPEN) {
+        try {
+          ws.close(1000, 'unmount');
+        } catch {
+          /* noop */
+        }
+      }
+      // CONNECTING이면 여기서 close() 호출하지 않음 → onopen에서 aborted 보고 종료
       wsRef.current = null;
       setIsConnected(false);
     };
