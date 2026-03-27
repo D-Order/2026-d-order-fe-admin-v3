@@ -26,29 +26,36 @@ const LoginPage = ({ mockLogin }: LoginPageProps = {}) => {
 
   const handleLogin = async () => {
     try {
-      let response;
+      let response: {
+        message?: string;
+        data: { username: string; booth_id: number };
+        token?: { access: string; refresh?: string };
+      };
 
       if (mockLogin !== undefined) {
         if (mockLogin === 'success') {
           response = {
+            message: '로그인 성공',
+            data: { username: formData.username || 'mock-user', booth_id: 1 },
             token: { access: 'mock-token' },
-            data: { manager_id: 1, booth_id: 1 },
           };
         } else {
           throw new Error('로그인 실패했습니다. 다시 시도해 주세요.');
         }
       } else {
-        response = await UserService.login(formData);
+        response = await UserService.loginV3(formData);
       }
 
-      const accessToken = response.token?.access;
-      const managerId = response.data.manager_id;
+      const data = response.data ?? (response as { username?: string; booth_id?: number });
+      const username = data.username ?? '';
+      const booth_id = data.booth_id ?? 0;
 
-      if (!accessToken || !managerId) {
-        throw new Error('로그인 응답이 올바르지 않습니다.');
+      if (!username && booth_id === 0) {
+        alert('로그인 응답이 올바르지 않습니다.');
+        return;
       }
 
-      localStorage.setItem('accessToken', accessToken);
+      localStorage.setItem('Booth-ID', String(booth_id));
       navigate(ROUTE_PATHS.HOME);
     } catch (err) {
       alert('로그인 실패했습니다. 다시 시도해 주세요.');

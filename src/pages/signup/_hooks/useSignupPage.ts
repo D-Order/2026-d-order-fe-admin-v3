@@ -2,6 +2,7 @@ import { useState, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import UserService from '@services/UserService';
 import { ROUTE_PATHS } from '@constants/routeConstants';
+import { useCheckUsername } from './useCheckUsername';
 
 export enum Step {
   USER = 1,
@@ -20,7 +21,7 @@ export type MockSignupSubmit = 'success' | 'fail';
 export const useSignupPage = (
   initialStep?: Step,
   mockDuplicateCheck?: MockDuplicateCheck,
-  mockSignupSubmit?: MockSignupSubmit
+  mockSignupSubmit?: MockSignupSubmit,
 ) => {
   const navigate = useNavigate();
   const [step, setStep] = useState<Step>(initialStep ?? Step.USER);
@@ -41,6 +42,11 @@ export const useSignupPage = (
     accountNumber: '',
   });
 
+  const { idError, idSuccess, resetIdCheck } = useCheckUsername(
+    formData.userId,
+    mockDuplicateCheck,
+  );
+
   const handleChange = useCallback((key: string, value: string) => {
     setFormData((prev) => ({ ...prev, [key]: value }));
   }, []);
@@ -50,27 +56,58 @@ export const useSignupPage = (
       return mockSignupSubmit === 'success';
     }
     try {
-      await UserService.postSignup({
+      const seatType = formData.tableFeePolicy as 'PT' | 'PP' | 'NO';
+      const response = await UserService.postSignupV3({
         username: formData.userId,
         password: formData.password,
-        booth_name: formData.pubName,
-        table_num: Number(formData.tableCount),
-        order_check_password: '', // 결제 비밀번호 입력 제거로 빈 값 전달
-        account: Number(formData.accountNumber),
-        depositor: formData.accountHolder,
-        bank: formData.bank,
-        seat_type: formData.tableFeePolicy as 'PT' | 'PP' | 'NO',
-        seat_tax_person:
-          formData.tableFeePolicy === 'PP' ? Number(formData.tableFee) : 0,
-        seat_tax_table:
-          formData.tableFeePolicy === 'PT' ? Number(formData.tableFee) : 0,
-        table_limit_hours: Number(formData.maxTime),
+        booth_data: {
+          name: formData.pubName,
+          table_max_cnt: Number(formData.tableCount),
+          account: Number(formData.accountNumber),
+          depositor: formData.accountHolder,
+          bank: formData.bank,
+          seat_type: seatType,
+          seat_fee_person: seatType === 'PP' ? Number(formData.tableFee) : 0,
+          seat_fee_table: seatType === 'PT' ? Number(formData.tableFee) : 0,
+          table_limit_hours: Number(formData.maxTime),
+        },
       });
+
+      const { booth_id } = response.data;
+      if (!response.token?.access) {
+        await UserService.loginV3({
+          username: formData.userId,
+          password: formData.password,
+        });
+      }
+      localStorage.setItem('Booth-ID', String(booth_id));
+      navigate(ROUTE_PATHS.HOME);
       return true;
-    } catch {
+    } catch (err: unknown) {
+      if (err && typeof err === 'object' && 'response' in err) {
+        const ax = err as {
+          response?: {
+            data?: { message?: string; data?: Record<string, unknown> };
+          };
+        };
+        const msg = ax.response?.data?.message;
+        const data = ax.response?.data?.data;
+        if (msg) {
+          const parts: string[] = [msg];
+          if (data?.username && Array.isArray(data.username)) {
+            parts.push(data.username[0]);
+          }
+          if (data?.booth_data && typeof data.booth_data === 'object') {
+            const bd = data.booth_data as Record<string, string[]>;
+            const first = Object.values(bd).find(Array.isArray);
+            if (Array.isArray(first) && first[0]) parts.push(first[0]);
+          }
+          console.warn('[Signup]', parts.join(' '));
+        }
+      }
       return false;
     }
-  }, [formData, mockSignupSubmit]);
+  }, [formData, mockSignupSubmit, navigate]);
 
   const goNext = useCallback(() => {
     setStep((prev) => (prev < Step.COMPLETE ? ((prev + 1) as Step) : prev));
@@ -102,6 +139,9 @@ export const useSignupPage = (
       userStage,
       setUserStage,
       mockDuplicateCheck,
+      idError,
+      idSuccess,
+      resetIdCheck,
     }),
     [
       formData,
@@ -113,7 +153,10 @@ export const useSignupPage = (
       userStage,
       setUserStage,
       mockDuplicateCheck,
-    ]
+      idError,
+      idSuccess,
+      resetIdCheck,
+    ],
   );
 
   return {

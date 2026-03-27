@@ -39,7 +39,7 @@ export const StyledInput = styled.input`
 
   &::placeholder {
     ${({ theme }) => theme.fonts.SemiBold16};
-    color: ${({ theme }) => theme.colors.Black02};
+    color: ${({ theme }) => theme.colors.Focused};
   }
 
   &:focus {

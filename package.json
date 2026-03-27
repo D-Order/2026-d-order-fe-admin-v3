@@ -1,5 +1,5 @@
 {
-  "name": "2025-d-order-fe-admin-v2",
+  "name": "2026-d-order-fe-admin-v3",
   "private": true,
   "version": "0.0.0",
   "type": "module",
@@ -46,5 +46,8 @@
     "@storybook/react": "^8.4.0",
     "@storybook/addon-essentials": "^8.4.0",
     "@storybook/blocks": "^8.4.0"
+  },
+  "overrides": {
+    "minimatch": "^10.2.1"
   }
 }
