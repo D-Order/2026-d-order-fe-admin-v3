@@ -1,13 +1,13 @@
-import * as S from "./Header.styled";
-import { useState } from "react";
+import * as S from './Header.styled';
+import { useState } from 'react';
 
-import { IMAGE_CONSTANTS } from "@constants/imageConstants";
-import Bell from "./_components/Bell";
-import LiveNotice from "./_components/LiveNotice";
+import { IMAGE_CONSTANTS } from '@constants/imageConstants';
+import Bell from './_components/Bell';
+import LiveNotice from './_components/LiveNotice';
 
-import useBoothRevenue from "./hooks/useBoothRevenue";
-import useAnimatedNumber from "./hooks/useAnimatedNumber";
-import { useStaffCall } from "./hooks/useStaffCall";
+import useBoothRevenue from './hooks/useBoothRevenue';
+import useAnimatedNumber from './hooks/useAnimatedNumber';
+import { useStaffCall } from './hooks/useStaffCall';
 const Header = () => {
   const [isReloading, setIsReloading] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
@@ -32,12 +32,12 @@ const Header = () => {
   };
 
   const formatCurrency = (amount: number): string => {
-    return amount.toLocaleString("ko-KR");
+    return amount.toLocaleString('ko-KR');
   };
 
   return (
     <S.HeaderWrapper>
-      <S.BoothName>{boothName || "부스 이름"}</S.BoothName>
+      <S.BoothName>{boothName || '부스 이름'}</S.BoothName>
 
       {liveNotice && <LiveNotice message={liveNotice} show={showLiveNotice} />}
       <S.SalesInfoWrapper>
@@ -56,7 +56,7 @@ const Header = () => {
           <S.ReloadIcon
             src={IMAGE_CONSTANTS.RELOAD}
             alt="새로고침아이콘"
-            className={isReloading ? "rotating" : ""}
+            className={isReloading ? 'rotating' : ''}
           />
         </S.ReloadButton>
       </S.SalesInfoWrapper>
