@@ -37,7 +37,9 @@ export default function OrderList({
         </S.EmptyStateWrapper>
       ) : (
         orders.map((order, index) => (
-          <Fragment key={index}>
+          <Fragment
+            key={order.orderId != null ? `o-${order.orderId}` : `i-${index}-t-${order.tableNumber}`}
+          >
             <OrderBox
               tableNumber={order.tableNumber}
               tableTime={order.tableTime}

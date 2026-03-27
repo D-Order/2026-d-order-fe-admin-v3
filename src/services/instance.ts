@@ -19,6 +19,20 @@ const isAuthEndpoint = (url?: string) =>
   url?.includes('/api/v2/manager/auth/') ||
   url?.includes('/api/v3/django/auth/');
 
+const isCsrfTokenEndpoint = (url?: string) =>
+  url?.includes('/api/v3/django/auth/csrf-token/');
+
+const isUnsafeMethod = (method?: string) => {
+  const m = (method || 'GET').toUpperCase();
+  return !['GET', 'HEAD', 'OPTIONS', 'TRACE'].includes(m);
+};
+
+const fetchCsrfToken = async (): Promise<string | null> => {
+  const res = await instance.get('/api/v3/django/auth/csrf-token/');
+  const token = res.data?.csrfToken;
+  return typeof token === 'string' ? token : null;
+};
+
 // 요청 인터셉터: 로그인/회원가입/refresh URL에는 Authorization 제외
 instance.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
@@ -126,6 +140,32 @@ instance.interceptors.response.use(
       }
     }
 
+    // CSRF 실패(대개 403) 시 토큰을 발급받고 원 요청 1회 재시도
+    if (
+      error.response?.status === 403 &&
+      !originalRequest._csrfRetry &&
+      isUnsafeMethod(originalRequest.method) &&
+      !isCsrfTokenEndpoint(originalRequest.url)
+    ) {
+      const detail = (error.response.data as any)?.detail;
+      const isCsrfError =
+        typeof detail === 'string' ? detail.toLowerCase().includes('csrf') : false;
+
+      if (isCsrfError) {
+        originalRequest._csrfRetry = true;
+        try {
+          const csrfToken = await fetchCsrfToken();
+          if (csrfToken) {
+            originalRequest.headers = originalRequest.headers ?? {};
+            originalRequest.headers['X-CSRFToken'] = csrfToken;
+          }
+          return instance(originalRequest);
+        } catch {
+          return Promise.reject(error);
+        }
+      }
+    }
+
     return Promise.reject(error);
   },
 );
@@ -222,6 +262,32 @@ instatnceWithImg.interceptors.response.use(
         return Promise.reject(err);
       } finally {
         isRefreshing = false;
+      }
+    }
+
+    // CSRF 실패(대개 403) 시 토큰을 발급받고 원 요청 1회 재시도
+    if (
+      error.response?.status === 403 &&
+      !originalRequest._csrfRetry &&
+      isUnsafeMethod(originalRequest.method) &&
+      !isCsrfTokenEndpoint(originalRequest.url)
+    ) {
+      const detail = (error.response.data as any)?.detail;
+      const isCsrfError =
+        typeof detail === 'string' ? detail.toLowerCase().includes('csrf') : false;
+
+      if (isCsrfError) {
+        originalRequest._csrfRetry = true;
+        try {
+          const csrfToken = await fetchCsrfToken();
+          if (csrfToken) {
+            originalRequest.headers = originalRequest.headers ?? {};
+            originalRequest.headers['X-CSRFToken'] = csrfToken;
+          }
+          return instatnceWithImg(originalRequest);
+        } catch {
+          return Promise.reject(error);
+        }
       }
     }
 
