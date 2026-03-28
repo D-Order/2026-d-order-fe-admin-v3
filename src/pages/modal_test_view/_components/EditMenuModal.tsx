@@ -120,12 +120,17 @@ const EditMenuModal = ({ handleCloseModal, defaultValues }: EditModalProps) => {
       return;
     }
 
+    // V3 필드명: menu_name→name, menu_description→description,
+    // menu_category→category(MENU/DRINK), menu_price→price, menu_amount→stock
+    const categoryMap: Record<string, string> = {
+      '메뉴': 'MENU', '메인': 'MENU', '음료': 'DRINK',
+    };
     const formData = new FormData();
-    formData.append("menu_name", name);
-    formData.append("menu_description", desc || "");
-    formData.append("menu_category", category);
-    formData.append("menu_price", price);
-    formData.append("menu_amount", stock);
+    formData.append("name", name);
+    formData.append("description", desc || "");
+    formData.append("category", categoryMap[category] ?? category);
+    formData.append("price", price);
+    formData.append("stock", stock);
 
     if (image instanceof File) {
       if (image.size > MAX_FILE_SIZE) {
@@ -135,11 +140,11 @@ const EditMenuModal = ({ handleCloseModal, defaultValues }: EditModalProps) => {
 
       // 이미지 압축 로직직
       if (image.size <= MIN_FILE_SIZE) {
-        formData.append("menu_image", image);
+        formData.append("image", image);
       } else {
         try {
           const correctedFile = await compressImage(image);
-          formData.append("menu_image", correctedFile);
+          formData.append("image", correctedFile);
         } catch (e) {
           console.log(e);
         } finally {
@@ -157,7 +162,7 @@ const EditMenuModal = ({ handleCloseModal, defaultValues }: EditModalProps) => {
     // 기존에 이미지 있던거 이미지 지울 경우
     else if (image === null && defaultValues.menu_image) {
       try {
-        formData.append("menu_image", "");
+        formData.append("image", "");
         await MenuServiceWithImg.updateMenu(defaultValues.menu_id, formData);
         setButtonDisable(false);
       } catch (err) {

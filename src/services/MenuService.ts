@@ -49,7 +49,7 @@ function mapV3MenuListToBoothMenuData(res: MenuListResponseV3): BoothMenuData {
     }
 
     if (item.category === 'MENU' || item.category === 'DRINK') {
-      const menuCategory = item.category === 'MENU' ? '메인' : '음료';
+      const menuCategory = item.category === 'MENU' ? '메뉴' : '음료';
       menus.push({
         menu_id: idNum,
         booth_id,
@@ -113,11 +113,11 @@ const MenuService = {
     }
   },
 
-  // 메뉴 수정
+  // 메뉴 수정 — PUT→PATCH, v2→v3
   updateMenu: async (id: number, formData: FormData): Promise<Menu> => {
     try {
-      const response: AxiosResponse<{ data: Menu }> = await instance.put(
-        `/api/v2/booth/menus/${id}/`,
+      const response: AxiosResponse<{ data: Menu }> = await instance.patch(
+        `/api/v3/django/booth/menus/${id}/`,
         formData,
       );
       return response.data.data;
@@ -126,53 +126,55 @@ const MenuService = {
     }
   },
 
-  // 메뉴 삭제
+  // 메뉴 삭제 — v2→v3
   deleteMenu: async (id: number) => {
     try {
-      await instance.delete(`/api/v2/booth/menus/${id}/`);
+      await instance.delete(`/api/v3/django/booth/menus/${id}/`);
     } catch (error) {
       throw error;
     }
   },
 
-  // 세트메뉴생성
+  // 세트메뉴 생성 — v2→v3, 필드명: set_name→name, set_description→description, set_price→price
   createSettMenu: async (payload: {
-    set_name: string;
-    set_description: string;
-    set_price: number | string;
-    menu_items: { menu_id: number; quantity: number }[];
+    name: string;
+    description: string;
+    price: number | string;
+    set_items: { menu_id: number; quantity: number }[];
   }): Promise<void> => {
     try {
-      await instance.post(`/api/v2/booth/setmenus/`, payload);
+      await instance.post(`/api/v3/django/booth/sets/`, payload);
     } catch (error) {
       throw error;
     }
   },
 
-  // 세트메뉴 수정
+  // 세트메뉴 수정 — v3, JSON body (FormData 아님)
+  // 이미지 수정 불가, 삭제만 image_delete: true 로 가능
   editSetMenu: async (
     set_menu_id: number,
-    formData: FormData,
-  ): Promise<MenuRegistResponse> => {
+    payload: {
+      name?: string;
+      description?: string | null;
+      price?: number;
+      set_items?: { menu_id: number; quantity: number }[];
+      image_delete?: boolean;
+    },
+  ): Promise<void> => {
     try {
-      const response = await instance.patch<MenuRegistResponse>(
-        `/api/v2/booth/setmenus/${set_menu_id}/`,
-        formData,
+      await instance.patch(
+        `/api/v3/django/booth/sets/${set_menu_id}/`,
+        payload,
       );
-      return response.data;
     } catch (error) {
-      return {
-        status: 'error',
-        message: '세트 메뉴 수정에 실패했습니다.',
-        code: 500,
-        data: null,
-      };
+      throw error;
     }
   },
 
+  // 세트메뉴 삭제 — v2→v3
   deleteSetMenu: async (id: number): Promise<void> => {
     try {
-      await instance.delete(`/api/v2/booth/setmenus/${id}/`);
+      await instance.delete(`/api/v3/django/booth/sets/${id}/`);
     } catch (error) {
       throw error;
     }
