@@ -19,7 +19,7 @@ export const CouponCard = ({ coupondata, onDetail }: SetCouponCardProps) => {
           <S.CardImg>
             <img
               src={
-                coupondata.discount_type === "amount"
+                coupondata.discount_type === "AMOUNT"
                   ? IMAGE_CONSTANTS.COUPON_PRICE
                   : IMAGE_CONSTANTS.COUPON_RATE
               }
@@ -33,14 +33,14 @@ export const CouponCard = ({ coupondata, onDetail }: SetCouponCardProps) => {
             <S.CardTextInner>
               <S.CardText
                 className={`bold name ${
-                  coupondata.coupon_name.length >= 8 ? "wrap" : ""
+                  coupondata.name.length >= 8 ? "wrap" : ""
                 }`}
               >
-                {coupondata.coupon_name}
+                {coupondata.name}
               </S.CardText>
               <S.CardText className="price">
                 {coupondata.discount_value}
-                {coupondata.discount_type === "amount" ? (
+                {coupondata.discount_type === "AMOUNT" ? (
                   <span>원</span>
                 ) : (
                   <span>%</span>
