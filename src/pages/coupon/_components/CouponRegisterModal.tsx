@@ -12,14 +12,13 @@ export const CouponRegisterModal = ({ onClose }: { onClose: () => void }) => {
     e?.preventDefault();
     try {
       await create({
-        coupon_name: bind.name.value.trim(),
-        coupon_description: bind.detail.value?.trim() || "",
-        discount_type: radio.discountType === "percent" ? "percent" : "amount",
+        name: bind.name.value.trim(),
+        description: bind.detail.value?.trim() || "",
+        discount_type: radio.discountType === "percent" ? "RATE" : "AMOUNT",
         discount_value:
           radio.discountType === "percent"
             ? Number(bind.rate.value)
             : Number(bind.amount.value),
-
         quantity: Number(bind.qty.value || 0),
       });
       onClose();

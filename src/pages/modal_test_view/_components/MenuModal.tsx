@@ -197,20 +197,21 @@ const MenuModal = ({ handleCloseModal, boothMenuData }: MenuModalProps) => {
     }
 
     // 단일 메뉴 처리
+    const categoryMap: Record<string, string> = { '메뉴': 'MENU', '음료': 'DRINK' };
     const formData = new FormData();
-    formData.append('menu_name', name);
-    formData.append('menu_description', desc || '');
-    formData.append('menu_category', category);
-    formData.append('menu_price', price);
-    formData.append('menu_amount', stock);
+    formData.append('name', name);
+    formData.append('description', desc || '');
+    formData.append('category', categoryMap[category] ?? category);
+    formData.append('price', price);
+    formData.append('stock', stock);
 
     if (image) {
       if (image.size <= MIN_FILE_SIZE) {
-        formData.append('menu_image', image);
+        formData.append('image', image);
       } else {
         try {
           const correctedFile = await compressImage(image);
-          formData.append('menu_image', correctedFile);
+          formData.append('image', correctedFile);
         } catch (e) {
           console.log(e);
         }

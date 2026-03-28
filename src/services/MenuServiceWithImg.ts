@@ -18,7 +18,7 @@ const MenuServiceWithImg = {
   createMenu: async (formData: FormData): Promise<MenuRegistResponse> => {
     try {
       const response = await instatnceWithImg.post<MenuRegistResponse>(
-        "/api/v2/booth/menus/",
+        "/api/v3/django/booth/menus/",
         formData
       );
 

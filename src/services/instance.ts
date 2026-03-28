@@ -147,9 +147,9 @@ instance.interceptors.response.use(
       isUnsafeMethod(originalRequest.method) &&
       !isCsrfTokenEndpoint(originalRequest.url)
     ) {
-      const detail = (error.response.data as any)?.detail;
+      const csrfMsg = (error.response.data as any)?.detail ?? (error.response.data as any)?.message;
       const isCsrfError =
-        typeof detail === 'string' ? detail.toLowerCase().includes('csrf') : false;
+        typeof csrfMsg === 'string' ? csrfMsg.toLowerCase().includes('csrf') : false;
 
       if (isCsrfError) {
         originalRequest._csrfRetry = true;
@@ -272,9 +272,9 @@ instatnceWithImg.interceptors.response.use(
       isUnsafeMethod(originalRequest.method) &&
       !isCsrfTokenEndpoint(originalRequest.url)
     ) {
-      const detail = (error.response.data as any)?.detail;
+      const csrfMsg = (error.response.data as any)?.detail ?? (error.response.data as any)?.message;
       const isCsrfError =
-        typeof detail === 'string' ? detail.toLowerCase().includes('csrf') : false;
+        typeof csrfMsg === 'string' ? csrfMsg.toLowerCase().includes('csrf') : false;
 
       if (isCsrfError) {
         originalRequest._csrfRetry = true;
