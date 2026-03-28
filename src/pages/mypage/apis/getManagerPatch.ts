@@ -1,5 +1,6 @@
 // mypage/apis/getManagerPatch.ts
-import axios, { AxiosError } from "axios";
+import axios, { AxiosError } from "axios"; 
+import { instance } from "@services/instance"; 
 
 export type SeatType = "PT" | "PP" | "NO";
 
@@ -20,16 +21,7 @@ export interface ApiEnvelope<T> {
   data: T | null;
 }
 
-const BASE_URL = import.meta.env.VITE_BASE_URL ?? "";
-
-const api = axios.create({
-  baseURL: BASE_URL,
-  withCredentials: true, // 쿠키 자동 전송 (🔒 인증 필요)
-  // Django 기본 CSRF 설정
-  xsrfCookieName: "csrftoken",
-  xsrfHeaderName: "X-CSRFToken",
-  headers: { "Content-Type": "application/json" },
-});
+// ❌ 기존에 있던 const BASE_URL = ... 와 const api = axios.create(...) 부분은 삭제했습니다.
 
 function normalizeAndThrow(error: unknown): never {
   if (axios.isAxiosError(error)) {
@@ -40,7 +32,7 @@ function normalizeAndThrow(error: unknown): never {
     // 400 에러의 경우 필드별 에러 배열이 올 수 있으므로 이를 처리
     let message = "부스 정보 수정 중 오류가 발생했습니다.";
     
-    if (status === 400 && typeof body === "object") {
+    if (status === 400 && typeof body === "object" && body !== null) {
       // 첫 번째 에러 메시지를 추출하여 표시
       const firstKey = Object.keys(body)[0];
       if (Array.isArray(body[firstKey])) {
@@ -50,6 +42,9 @@ function normalizeAndThrow(error: unknown): never {
       }
     } else if (status === 401) {
       message = "자격 인증 데이터가 제공되지 않았습니다. 다시 로그인해주세요.";
+    } else if (status === 403) {
+      // 403 에러 메시지 보강
+      message = "권한이 없거나 CSRF 토큰 처리에 실패했습니다. 다시 시도해주세요.";
     }
 
     console.error("[PATCH manager][ERROR]", { status, body });
@@ -80,10 +75,6 @@ export async function patchManagerInfo(
   // 1) 과금 규칙 보정 (비활성화된 금액은 0으로 처리)
   const body: any = normalizeSeatFields(payload);
 
-  // 2) 변경 불가능한 값 제외 (안전 처리)
-  if ('table_max_cnt' in body) {
-    delete body.table_max_cnt;
-  }
 
   // 3) 숫자 캐스팅 (유효한 정수값 전송 목적)
   if (body.seat_fee_person != null) body.seat_fee_person = Number(body.seat_fee_person);
@@ -91,7 +82,7 @@ export async function patchManagerInfo(
   if (body.table_limit_hours != null) body.table_limit_hours = Number(body.table_limit_hours);
 
   try {
-    const res = await api.patch<ApiEnvelope<BoothMyPageData>>(
+    const res = await instance.patch<ApiEnvelope<BoothMyPageData>>(
       "/api/v3/django/booth/mypage/", 
       body
     );

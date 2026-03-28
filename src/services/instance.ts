@@ -25,6 +25,11 @@ const isAuthEndpoint = (url?: string) =>
 const isCsrfTokenEndpoint = (url?: string) =>
   url?.includes('/api/v3/django/auth/csrf-token/');
 
+const isUnsafeMethod = (method?: string) => {
+  const m = (method || 'GET').toUpperCase();
+  return !['GET', 'HEAD', 'OPTIONS', 'TRACE'].includes(m);
+};
+
 const fetchCsrfToken = async (): Promise<string | null> => {
   const res = await instance.get('/api/v3/django/auth/csrf-token/');
   const token = res.data?.csrfToken;
