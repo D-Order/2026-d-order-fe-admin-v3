@@ -11,7 +11,7 @@ export const DetailWrapper = styled.div`
     min-width: 54rem;
     color: ${({ theme }) => theme.colors.Black01};
     background-color: ${({theme}) => theme.colors.Bg}; 
-
+    margin-bottom: 1rem;
     ${({ theme }) => css(theme.fonts.ExtraBold26)};
 `;
 

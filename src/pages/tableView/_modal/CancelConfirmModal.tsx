@@ -1,13 +1,9 @@
-// _modal/CancelConfirmModal.tsx
-import { useEffect } from "react";
 import styled, { css } from "styled-components";
 
 interface Props {
   onConfirm: () => void;
   onCancel: () => void;
-  /** 선택된 취소 수량 */
   cancelCount?: number;
-  /** 취소 전 총 수량 (잔여 계산용) */
   totalCountBefore?: number;
 }
 
@@ -17,37 +13,6 @@ const CancelConfirmModal: React.FC<Props> = ({
   cancelCount,
   totalCountBefore,
 }) => {
-  // 모달이 열릴 때 현재 선택/잔여 예상값 로그
-  useEffect(() => {
-    if (typeof cancelCount === "number" && typeof totalCountBefore === "number") {
-      const expectedLeft = Math.max(0, totalCountBefore - cancelCount);
-      console.log(
-        "[CancelConfirmModal] 선택 수량:",
-        cancelCount,
-        "/ 취소 전 총 수량:",
-        totalCountBefore,
-        "/ (예상) 취소 후 남는 수량:",
-        expectedLeft
-      );
-    } else {
-      console.log("[CancelConfirmModal] 수량 정보가 없어 예상 잔여량 계산 불가");
-    }
-  }, [cancelCount, totalCountBefore]);
-
-  const handleConfirm = () => {
-    if (typeof cancelCount === "number" && typeof totalCountBefore === "number") {
-      console.log(
-        "[CancelConfirmModal] 확인 클릭 - 취소 요청 전 송신 예정 수량:",
-        cancelCount,
-        "/ 취소 전 총 수량:",
-        totalCountBefore
-      );
-    } else {
-      console.log("[CancelConfirmModal] 확인 클릭");
-    }
-    onConfirm();
-  };
-
   return (
     <Overlay>
       <Modal>
@@ -59,8 +24,8 @@ const CancelConfirmModal: React.FC<Props> = ({
           </p>
           {typeof cancelCount === "number" && typeof totalCountBefore === "number" && (
             <p className="grayText">
-              선택: {cancelCount}개 / 취소 전: {totalCountBefore}개 / (예상)잔여:{" "}
-              {Math.max(0, totalCountBefore - cancelCount)}개
+              선택: {cancelCount}개 / 취소 전: {totalCountBefore}개 <br/> 
+              (예상)잔여: {Math.max(0, totalCountBefore - cancelCount)}개
             </p>
           )}
         </TextWrapper>
@@ -69,7 +34,7 @@ const CancelConfirmModal: React.FC<Props> = ({
             <button onClick={onCancel}>취소</button>
           </ButtonContainer1>
           <ButtonContainer2>
-            <button onClick={handleConfirm}>주문 취소</button>
+            <button onClick={onConfirm}>주문 취소</button>
           </ButtonContainer2>
         </ButtonRow>
       </Modal>

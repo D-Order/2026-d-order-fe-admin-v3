@@ -127,12 +127,12 @@ const TableViewGrid: React.FC<Props> = ({ tableList, onSelectTable }) => {
           {pages.map((items, idx) => (
             <S.PageGrid key={idx} $pageCount={pageCount}>
               {items.map(({ original, viewData }) => (
-                <div
-                  key={original.tableNum}
-                  onClick={() => onSelectTable(original)}
-                >
-                  <TableCard data={viewData} />
-                </div>
+                <div key={original.tableNum}>
+                <TableCard 
+                  data={viewData} 
+                  onSelect={() => onSelectTable(original)} 
+                />
+              </div>
               ))}
             </S.PageGrid>
           ))}

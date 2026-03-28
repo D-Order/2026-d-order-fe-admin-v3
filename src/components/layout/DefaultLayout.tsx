@@ -7,6 +7,7 @@ import useAuthRedirect from '@hooks/useAuthRedirect';
 
 import Header from '@components/header/Header';
 import SideBar from '@components/sideBar/SideBar';
+import { TableSelectionProvider } from '../../context/TableSelectionContext';
 
 const DefaultLayout = () => {
   // 개발 중 임시로 주석 처리
@@ -17,17 +18,21 @@ const DefaultLayout = () => {
   useEffect(() => {}, [location.pathname]);
 
   return (
-    <Wrapper>
-      <Header />
-      <MainContainer>
-        <SideBarWrapper>
-          <SideBar />
-        </SideBarWrapper>
-        <Contents>
-          <Outlet />
-        </Contents>
-      </MainContainer>
-    </Wrapper>
+    // Provider (테이블 선택 여부 sidebar 반영을 위함)
+    <TableSelectionProvider> 
+      <Wrapper>
+        <Header />
+        <MainContainer>
+          <SideBarWrapper>
+            <SideBar />
+          </SideBarWrapper>
+          <Contents>
+            <Outlet />
+          </Contents>
+        </MainContainer>
+      </Wrapper>
+    </TableSelectionProvider>
+
   );
 };
 
@@ -39,7 +44,6 @@ const Wrapper = styled.section`
   flex-grow: 1;
   min-height: calc(var(--vh, 1vh) * 100);
   /* padding-top: 3.5rem; */
-
   background-color: ${({ theme }) => theme.colors.Bg};
 `;
 
