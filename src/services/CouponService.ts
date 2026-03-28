@@ -7,18 +7,28 @@ export interface postNewCouponRequest {
   discount_value: number;
   quantity: number;
 }
+// V3 쿠폰 등록 응답 형식
 export interface postNewCouponResponse {
-  status: string;
-  code: number;
-  data: Coupon;
+  message: string;
+  data: {
+    coupon: {
+      coupon_id: number;
+      booth_id: number;
+      name: string;
+      description: string | null;
+      discount_type: 'AMOUNT' | 'RATE';
+      discount_value: number;
+      quantity: number;
+      created_at: string;
+    };
+  };
 }
-//couponList get
+// V3 쿠폰 목록 응답: coupon_name→name, discount_type 대문자, is_used 제거
 export interface Coupon {
   coupon_id: number;
-  coupon_name: string;
-  discount_type: 'amount' | 'percent';
+  name: string;
+  discount_type: 'AMOUNT' | 'RATE';
   discount_value: number;
-  is_used: boolean;
   created_at: string;
   total_count: number;
   remaining_count: number;

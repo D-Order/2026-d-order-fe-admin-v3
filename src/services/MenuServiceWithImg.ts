@@ -15,13 +15,13 @@ export interface MenuRegistResponse {
   } | null;
 }
 const MenuServiceWithImg = {
+  // 메뉴 등록 — v3 유지
   createMenu: async (formData: FormData): Promise<MenuRegistResponse> => {
     try {
       const response = await instatnceWithImg.post<MenuRegistResponse>(
         "/api/v3/django/booth/menus/",
         formData
       );
-
       return response.data;
     } catch (error) {
       return {
@@ -32,13 +32,15 @@ const MenuServiceWithImg = {
       };
     }
   },
+
+  // 메뉴 수정 — v2→v3
   updateMenu: async (
     menu_id: number,
     formData: FormData
   ): Promise<MenuRegistResponse> => {
     try {
       const response = await instatnceWithImg.patch<MenuRegistResponse>(
-        `/api/v2/booth/menus/${menu_id}/`,
+        `/api/v3/django/booth/menus/${menu_id}/`,
         formData
       );
       return response.data;
@@ -51,10 +53,12 @@ const MenuServiceWithImg = {
       };
     }
   },
+
+  // 세트메뉴 등록 — v2→v3
   createSetMenu: async (formData: FormData): Promise<MenuRegistResponse> => {
     try {
       const response = await instatnceWithImg.post<MenuRegistResponse>(
-        "/api/v2/booth/setmenus/",
+        "/api/v3/django/booth/sets/",
         formData
       );
       return response.data;
@@ -67,13 +71,15 @@ const MenuServiceWithImg = {
       };
     }
   },
+
+  // 세트메뉴 수정 — v2→v3
   updateSetMenu: async (
     set_menu_id: number,
     formData: FormData
   ): Promise<MenuRegistResponse> => {
     try {
       const response = await instatnceWithImg.patch<MenuRegistResponse>(
-        `/api/v2/booth/setmenus/${set_menu_id}/`,
+        `/api/v3/django/booth/sets/${set_menu_id}/`,
         formData
       );
       return response.data;
@@ -86,40 +92,42 @@ const MenuServiceWithImg = {
       };
     }
   },
-  // 세트메뉴생성
+
+  // 세트메뉴 생성(JSON) — v2→v3, 필드명: set_name→name, set_description→description, set_price→price
   createSettMenu: async (payload: {
-    set_name: string;
-    set_description: string;
-    set_price: number | string;
-    menu_items: { menu_id: number; quantity: number }[];
+    name: string;
+    description: string;
+    price: number | string;
+    set_items: { menu_id: number; quantity: number }[];
   }): Promise<void> => {
     try {
-      await instatnceWithImg.post(`/api/v2/booth/setmenus/`, payload);
+      await instatnceWithImg.post(`/api/v3/django/booth/sets/`, payload);
     } catch (error) {
       throw error;
     }
   },
 
-  // 세트메뉴 수정
+  // 세트메뉴 수정(JSON) — v2→v3, 필드명 동일
   editSetMenu: async (
     id: number,
     payload: {
-      set_name: string;
-      set_description: string;
-      set_price: number | string;
-      menu_items: { menu_id: number; quantity: number }[];
+      name: string;
+      description: string;
+      price: number | string;
+      set_items: { menu_id: number; quantity: number }[];
     }
   ): Promise<void> => {
     try {
-      await instatnceWithImg.patch(`/api/v2/booth/setmenus/${id}/`, payload);
+      await instatnceWithImg.patch(`/api/v3/django/booth/sets/${id}/`, payload);
     } catch (error) {
       throw error;
     }
   },
 
+  // 세트메뉴 삭제 — v2→v3
   deleteSetMenu: async (id: number): Promise<void> => {
     try {
-      await instatnceWithImg.delete(`/api/v2/booth/setmenus/${id}/`);
+      await instatnceWithImg.delete(`/api/v3/django/booth/sets/${id}/`);
     } catch (error) {
       throw error;
     }
