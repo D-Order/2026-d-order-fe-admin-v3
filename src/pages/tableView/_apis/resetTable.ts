@@ -16,8 +16,8 @@ export const resetTable = async (tableNums: number[]): Promise<ResetTableRespons
 
   try {
     const res = await instance.post<ResetTableResponse>(
-      "/api/v3/django/booth/tables/reset",
-      { table_nums: tableNums } // ⬅️ 명세에 맞게 바디 전송
+      "/api/v3/django/booth/tables/reset/",
+      { table_nums: tableNums } 
     );
     return res.data;
   } catch (e: any) {

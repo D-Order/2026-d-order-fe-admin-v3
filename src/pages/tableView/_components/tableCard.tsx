@@ -2,111 +2,113 @@
 import * as S from './tableComponents.styled';
 import { TABLEPAGE_CONSTANTS } from '../_constants/tableConstants';
 import ACCO from "@assets/images/character.svg";
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useTableSelection } from '../../../context/TableSelectionContext';
-
-interface TableCardData {
-  tableNumber: number;
-  totalAmount: number;
-  orderedAt: string;
-  orders: {
-    menu: string;
-    quantity: number;
-  }[];
-  isOverdue: boolean;
-}
+import { TableOrder } from './tableGrid';
 
 interface Props {
-  data: TableCardData;
+  data: TableOrder;
+  limitHours: number | null; // 🌟 그리드에서 넘겨준 제한 시간
   onSelect?: () => void;
 }
 
-const TableCard: React.FC<Props> = ({ data, onSelect }) => {
+const TableCard: React.FC<Props> = ({ data, limitHours, onSelect }) => {
   const { selectedTables, toggleTableSelection } = useTableSelection();
   const isSelected = selectedTables.includes(data.tableNumber); 
   const formattedTableNum = `T ${String(data.tableNumber).padStart(2, '0')}`;
-  const [elapsedTime, setElapsedTime] = useState<string>("00:00");
   
-  // 수정필요~!~!~!~!~!~
-  // 이용시간 계산 로직
-  const calculateElapsedTime = () => {
-    // 1. 데이터가 없거나 주문이 없으면 즉시 반환
-    if (!data.orderedAt || data.orders.length === 0) return "00:00";
+  // 상태: 경과 시간 문자열(hh:mm) 및 시간 초과 여부
+  const [elapsedTime, setElapsedTime] = useState<string>("00:00");
+  const [isOverdue, setIsOverdue] = useState<boolean>(false);
+  
+  // 🌟 입장 시간 기반으로 경과 시간 및 초과 여부 계산 로직
+  const checkTimeAndStatus = useCallback(() => {
+    if (!data.startedAt) {
+      setElapsedTime("00:00");
+      setIsOverdue(false);
+      return;
+    }
 
-    const orderDate = new Date(data.orderedAt);
+    const orderDate = new Date(data.startedAt);
     const currentDate = new Date();
 
-    // 2. 유효한 날짜인지 체크 (Invalid Date 방지)
-    if (isNaN(orderDate.getTime())) return "00:00";
+    if (isNaN(orderDate.getTime())) return;
 
     const diffInMs = currentDate.getTime() - orderDate.getTime();
-    
-    // 3. 미래 시간이 찍히는 경우 방어 로직
-    if (diffInMs <= 0) return "00:00";
+    if (diffInMs <= 0) {
+      setElapsedTime("00:00");
+      setIsOverdue(false);
+      return;
+    }
 
     const totalMinutes = Math.floor(diffInMs / (1000 * 60));
     const hours = Math.floor(totalMinutes / 60);
     const minutes = totalMinutes % 60;
 
-    // 4. 숫자가 유효한지 최종 확인 후 포맷팅
     const hh = isNaN(hours) ? "00" : String(hours).padStart(2, '0');
     const mm = isNaN(minutes) ? "00" : String(minutes).padStart(2, '0');
 
-    return `${hh}:${mm}`;
-  };
+    setElapsedTime(`${hh}:${mm}`);
 
-  const handleCheckboxChange = () => {
-    toggleTableSelection(data.tableNumber); // 🌟 체크 상태 토글
-  };
+    // 초과 여부 판단 (limitHours가 설정되어 있고, 경과된 총 분이 제한 분(limitHours * 60)보다 크거나 같으면 초과)
+    if (limitHours && limitHours > 0) {
+      setIsOverdue(totalMinutes >= limitHours * 60);
+    } else {
+      setIsOverdue(false);
+    }
+  }, [data.startedAt, limitHours]);
 
-  // 실시간 업데이트 useEffect
+  // 실시간 업데이트 (1분마다 계산)
   useEffect(() => {
-    // 초기 실행
-    setElapsedTime(calculateElapsedTime());
+    checkTimeAndStatus(); // 초기 계산
 
     const timer = setInterval(() => {
-      setElapsedTime(calculateElapsedTime());
+      checkTimeAndStatus();
     }, 60000);
 
     return () => clearInterval(timer);
-  }, [data.orderedAt, data.orders.length]);
+  }, [checkTimeAndStatus]);
   
-  //!~!~!~!~!~!~!~!~!!!~!~!
+  const handleCheckboxChange = () => {
+    toggleTableSelection(data.tableNumber);
+  };
+
   const handleCardClick = (e: React.MouseEvent) => {
     if ((e.target as HTMLElement).tagName === 'INPUT') return;
     
-    if (data.orders.length === 0) {
-      alert("주문 내역이 없는 테이블입니다.");
+    // 🌟 주문이 없더라도 빈 테이블이 아닌 경우(입장 시간이 있는 경우)는 상세조회 진입 허용 가능
+    // 기존: if(data.orders.length === 0) return;
+    // 변경: IN_USE(입장시간 있음)인데 메뉴만 없는 경우 처리
+    if (!data.startedAt && data.orders.length === 0) {
+      alert("주문 내역이 없는 빈 테이블입니다.");
       return;
     }
     if (onSelect) onSelect();
   };
-  
-
 
   return (
     <S.CardWrapper 
-      $isOverdue={data.isOverdue} 
+      $isOverdue={isOverdue} // 🌟 자체 계산된 상태 사용
       $isSelected={isSelected}
       onClick={handleCardClick}
     >
-      <S.TableInfo $isOverdue={data.isOverdue}>
+      <S.TableInfo $isOverdue={isOverdue}>
         <div style={{ display: 'flex', alignItems: 'center' }}>
           <input 
             type="checkbox" 
             checked={isSelected}
-            onChange={handleCheckboxChange} // 🌟 토글 함수 연결
+            onChange={handleCheckboxChange} 
             onClick={(e) => e.stopPropagation()} 
           />
           <p className="tableNumber">{formattedTableNum}</p>
         </div>
-        <p className="orderTime">{data.orders.length > 0 ? elapsedTime : "00:00"}</p>
+        {/* 입장 시간(startedAt)이 있으면 시간 표시 */}
+        <p className="orderTime">{data.startedAt ? elapsedTime : "00:00"}</p>
       </S.TableInfo>
       
       <S.DivideLine />
       <S.MenuContainer>
         <S.MenuList>
-          
           {data.orders.length === 0 && (
             <S.EmptyImage src={ACCO} alt="빈 테이블" />
           )}
@@ -123,12 +125,9 @@ const TableCard: React.FC<Props> = ({ data, onSelect }) => {
               />
             </S.ItemRow>
           ))}
-          
         </S.MenuList>
         {data.orders.length > 0 && <S.ToDetail>더보기</S.ToDetail>}
-
       </S.MenuContainer>
-
 
       <S.TotalPrice>
         <p className="totalPrice">총 금액 {data.totalAmount.toLocaleString()}원</p>

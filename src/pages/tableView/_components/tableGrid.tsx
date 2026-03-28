@@ -4,30 +4,20 @@ import * as S from "./tableComponents.styled";
 import { useSwipeable } from "react-swipeable";
 import TableCard from "./tableCard";
 import { TableItem } from "../_apis/getTableList";
-import { useTableStatus } from "../_hooks/useTableStatus";
+import { getBoothMyPage } from "../_apis/getBoothMyPage"; // 🌟 새 API 임포트
 
 interface Props {
   tableList: TableItem[];
   onSelectTable: (table: TableItem) => void;
 }
 
-interface TableOrder {
+// 🌟 CardData에서 isOverdue를 제거하고 startedAt을 추가 (오버듀 계산은 Card 내부에서 실시간으로 처리)
+export interface TableOrder {
   tableNumber: number;
   totalAmount: number;
-  orderedAt: string;
   orders: { menu: string; quantity: number }[];
-  isOverdue: boolean; // websocket expired
+  startedAt: string | null; 
 }
-
-const TAG = "%c[TableGrid]";
-const TAG_STYLE = "background:#555;color:#fff;padding:2px 6px;border-radius:4px";
-
-const formatTime = (iso: string | null) => {
-  if (!iso) return "주문 없음";
-  const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return "주문 없음";
-  return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-};
 
 const chunk = <T,>(arr: T[], size: number) =>
   Array.from({ length: Math.ceil(arr.length / size) }, (_, i) =>
@@ -37,7 +27,22 @@ const chunk = <T,>(arr: T[], size: number) =>
 const ITEMS_PER_PAGE = 15;
 
 const TableViewGrid: React.FC<Props> = ({ tableList, onSelectTable }) => {
-  const { expiredMap } = useTableStatus();
+  // 🌟 부스의 이용 시간 제한 (시간 단위, ex: 2.00 -> 2)
+  const [limitHours, setLimitHours] = useState<number | null>(null);
+
+  useEffect(() => {
+    const fetchBoothInfo = async () => {
+      try {
+        const data = await getBoothMyPage();
+        if (data.table_limit_hours) {
+          setLimitHours(parseFloat(data.table_limit_hours));
+        }
+      } catch (e) {
+        console.error("부스 정보 조회 실패:", e);
+      }
+    };
+    fetchBoothInfo();
+  }, []);
 
   const mapped = useMemo(
     () =>
@@ -45,51 +50,32 @@ const TableViewGrid: React.FC<Props> = ({ tableList, onSelectTable }) => {
         const viewData: TableOrder = {
           tableNumber: item.tableNum,
           totalAmount: item.amount,
-          orderedAt: formatTime(item.createdAt),
           orders: (item.latestOrders ?? []).map((o) => ({
             menu: o.name,
             quantity: o.qty,
           })),
-          isOverdue: !!expiredMap[item.tableNum],
+          startedAt: item.startedAt, // 🌟 입장 시간 매핑
         };
         return { original: item, viewData };
       }),
-    [tableList, expiredMap]
+    [tableList]
   );
 
-  const pages = useMemo(() => {
-    const p = chunk(mapped, ITEMS_PER_PAGE);
-    console.debug(TAG, TAG_STYLE, "페이지 재계산", {
-      totalTables: mapped.length,
-      itemsPerPage: ITEMS_PER_PAGE,
-      pageCount: p.length,
-    });
-    return p;
-  }, [mapped]);
-
+  const pages = useMemo(() => chunk(mapped, ITEMS_PER_PAGE), [mapped]);
   const pageCount = Math.max(1, pages.length);
   const [page, setPage] = useState(0);
 
-  // 페이지 개수 변동 시 현재 페이지 보정
   useEffect(() => {
     setPage((prev) => {
       const next = prev >= pageCount ? pageCount - 1 : prev;
-      if (prev !== next) {
-        console.debug(TAG, TAG_STYLE, "페이지 보정", { prev, next, pageCount });
-      }
       return next;
     });
   }, [pageCount]);
 
-  // 키보드 네비게이션
   const onKey = useCallback(
     (e: KeyboardEvent) => {
-      if (e.key === "ArrowLeft") {
-        setPage((p) => (p === 0 ? pageCount - 1 : p - 1));
-      }
-      if (e.key === "ArrowRight") {
-        setPage((p) => (p === pageCount - 1 ? 0 : p + 1));
-      }
+      if (e.key === "ArrowLeft") setPage((p) => (p === 0 ? pageCount - 1 : p - 1));
+      if (e.key === "ArrowRight") setPage((p) => (p === pageCount - 1 ? 0 : p + 1));
     },
     [pageCount]
   );
@@ -109,17 +95,6 @@ const TableViewGrid: React.FC<Props> = ({ tableList, onSelectTable }) => {
     trackMouse: true,
   });
 
-  // expiredMap 변화 디버깅
-  useEffect(() => {
-    const expiredTrue = Object.entries(expiredMap)
-      .filter(([, v]) => v)
-      .map(([k]) => k);
-    console.debug(TAG, TAG_STYLE, "expiredMap 변경", {
-      size: Object.keys(expiredMap).length,
-      expiredTrue,
-    });
-  }, [expiredMap]);
-
   return (
     <S.GridWrapper {...handlers}>
       <S.GridViewport>
@@ -128,11 +103,12 @@ const TableViewGrid: React.FC<Props> = ({ tableList, onSelectTable }) => {
             <S.PageGrid key={idx} $pageCount={pageCount}>
               {items.map(({ original, viewData }) => (
                 <div key={original.tableNum}>
-                <TableCard 
-                  data={viewData} 
-                  onSelect={() => onSelectTable(original)} 
-                />
-              </div>
+                  <TableCard 
+                    data={viewData} 
+                    limitHours={limitHours} // 🌟 Card에 제한 시간 전달
+                    onSelect={() => onSelectTable(original)} 
+                  />
+                </div>
               ))}
             </S.PageGrid>
           ))}
