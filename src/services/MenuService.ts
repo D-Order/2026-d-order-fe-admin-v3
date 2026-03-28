@@ -6,7 +6,6 @@ import {
   SetMenu,
   TableInfo,
 } from '../pages/menu/Type/Menu_type';
-import { MenuRegistResponse } from './MenuServiceWithImg';
 
 export type MenuListCategoryV3 = 'FEE' | 'MENU' | 'DRINK' | 'SET';
 
