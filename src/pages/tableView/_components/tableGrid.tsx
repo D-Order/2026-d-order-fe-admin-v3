@@ -45,7 +45,7 @@ const TableViewGrid: React.FC<Props> = ({ tableList, onSelectTable }) => {
         const viewData: TableOrder = {
           tableNumber: item.tableNum,
           totalAmount: item.amount,
-          orderedAt: formatTime(item.createdAt),
+          orderedAt: formatTime(item.startedAt),
           orders: (item.latestOrders ?? []).map((o) => ({
             menu: o.name,
             quantity: o.qty,

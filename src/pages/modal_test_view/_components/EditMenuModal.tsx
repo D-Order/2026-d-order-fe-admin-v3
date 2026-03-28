@@ -98,20 +98,6 @@ const EditMenuModal = ({ handleCloseModal, defaultValues }: EditModalProps) => {
     setStock(String(clamped));
   };
 
-  const handleRemoveImage = (e?: React.MouseEvent<HTMLButtonElement>) => {
-    if (e) {
-      e.preventDefault();
-      e.stopPropagation();
-    }
-    if (UploadImg) {
-      URL.revokeObjectURL(UploadImg);
-    }
-    setUploadImg(null);
-    setImage(null);
-    if (fileInputRef.current) {
-      fileInputRef.current.value = "";
-    }
-  };
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 

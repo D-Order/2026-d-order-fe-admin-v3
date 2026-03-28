@@ -108,19 +108,6 @@ const EditSetMenuModal = ({
     setPrice(String(clamped));
   };
 
-  const handleRemoveImage = (e?: React.MouseEvent<HTMLButtonElement>) => {
-    if (e) {
-      e.preventDefault();
-      e.stopPropagation();
-    }
-    if (uploadImg) {
-      URL.revokeObjectURL(uploadImg);
-    }
-    setUploadImg(null);
-    if (fileInputRef.current) {
-      fileInputRef.current.value = "";
-    }
-  };
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!name || !price) {
