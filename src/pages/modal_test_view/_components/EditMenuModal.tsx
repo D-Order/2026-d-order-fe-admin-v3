@@ -241,7 +241,8 @@ const EditMenuModal = ({ handleCloseModal, defaultValues }: EditModalProps) => {
           <S.ele>
             <S.SubTitle>메뉴 이미지</S.SubTitle>
             <S.OtherText>이미지 파일 (JPG,PNG)을 첨부해 주세요</S.OtherText>
-            <label htmlFor="file-upload">
+            {/* V3 수정 시 이미지 변경 미지원 — label→div로 교체해 파일 업로드 비활성화 */}
+            <div>
               <S.inputImg
                 id="file-upload"
                 type="file"
@@ -249,11 +250,13 @@ const EditMenuModal = ({ handleCloseModal, defaultValues }: EditModalProps) => {
                 onChange={handleFileChange}
                 multiple={false}
                 ref={fileInputRef}
+                style={{ display: "none" }}
               />
               {UploadImg ? (
                 <S.ImgContainer>
                   <S.Img src={UploadImg} alt="첨부한 이미지" />
-                  <button
+                  {/* V3 이미지 삭제 비활성화 — 수정 시 이미지 변경/삭제 미지원 */}
+                  {/* <button
                     type="button"
                     onMouseDown={(e) => {
                       e.preventDefault();
@@ -262,12 +265,12 @@ const EditMenuModal = ({ handleCloseModal, defaultValues }: EditModalProps) => {
                     onClick={handleRemoveImage}
                   >
                     <img src={IMAGE_CONSTANTS.CLOSE2} alt="" />
-                  </button>
+                  </button> */}
                 </S.ImgContainer>
               ) : (
                 <img src={preUploadImg} alt="기본 이미지" />
               )}
-            </label>
+            </div>
           </S.ele>
         </S.FormContentWrapper>
       </S.ModalBody>

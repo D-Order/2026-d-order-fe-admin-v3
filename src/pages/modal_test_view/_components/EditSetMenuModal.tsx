@@ -249,7 +249,8 @@ const EditSetMenuModal = ({
             {uploadImg ? (
               <S.ImgContainer>
                 <S.Img src={uploadImg} alt="첨부한 이미지" />
-                <button
+                {/* V3 이미지 삭제 비활성화 — 수정 시 이미지 변경/삭제 미지원 */}
+                {/* <button
                   type="button"
                   onMouseDown={(e) => {
                     e.preventDefault();
@@ -258,7 +259,7 @@ const EditSetMenuModal = ({
                   onClick={handleRemoveImage}
                 >
                   <img src={IMAGE_CONSTANTS.CLOSE2} alt="" />
-                </button>
+                </button> */}
               </S.ImgContainer>
             ) : (
               <img src={preUploadImg} alt="기존 이미지" />
