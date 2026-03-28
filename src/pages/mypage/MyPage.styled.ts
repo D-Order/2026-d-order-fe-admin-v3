@@ -23,7 +23,7 @@ export const Input = styled.input`
     border-radius: 0.375rem;
     max-width: 5rem;
     ${({ theme }) => theme.fonts.Bold16};
-    background-color: ${({ theme }) => theme.colors.Bg};
+    background-color: ${({ theme }) => theme.colors.Orange00};
     color: ${({ theme }) => theme.colors.Black01};
     font-size: 1rem;
     font-weight: 700;
@@ -114,7 +114,7 @@ export const FeeTag = styled.div`
     display: flex;
     justify-content: center;
     align-items: center;
-    background-color: ${({ theme }) => theme.colors.Orange02};
+    background-color: ${({ theme }) => theme.colors.Orange00};
     color: ${({ theme }) => theme.colors.Orange01};
     ${({ theme }) => theme.fonts.Bold16};
     width: 4.625rem;
@@ -129,7 +129,7 @@ export const BanckContainer = styled.div`
     justify-content: center;
     align-items: center;
     position: relative;
-    background-color: ${({ theme }) => theme.colors.Orange02};
+    background-color: ${({ theme }) => theme.colors.Orange00};
     color: ${({ theme }) => theme.colors.Orange01};
     min-width: 5.813rem;
     height: 1.75rem;
@@ -165,7 +165,7 @@ export const BankTag = styled.div`
     display: flex;
     justify-content: center;
     align-items: center;
-    background-color: ${({ theme }) => theme.colors.Orange02};
+    background-color: ${({ theme }) => theme.colors.Orange00};
     color: ${({ theme }) => theme.colors.Orange01};
     ${({ theme }) => theme.fonts.Bold16};
     min-width: 4.625rem;
@@ -179,7 +179,7 @@ export const ColorSection = styled.div`
     display: flex;
     justify-content: center;
     align-items: center;
-    background-color: ${({ theme }) => theme.colors.Orange02};
+    background-color: ${({ theme }) => theme.colors.Orange00};
     color: ${({ theme }) => theme.colors.Orange01};
     ${({ theme }) => theme.fonts.Bold16};
     width: fit-content;

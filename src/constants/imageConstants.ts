@@ -25,6 +25,9 @@ import Nav_dashboard_active from "../assets/icons/navDashboardActive.svg";
 
 import BroomIcon from "../assets/icons/broom-icon.svg";
 import MergeIcon from "../assets/icons/merge-icon.svg";
+import QR_icon from "../assets/icons/QR_icon.svg";
+import DateReset from "../assets/icons/dataReset.svg";
+
 
 import Bell from "../assets/icons/bell.svg";
 import ReloadWhite from "../assets/icons/reloadWhite.svg";

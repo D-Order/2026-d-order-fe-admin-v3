@@ -1,4 +1,5 @@
 import styled, { css } from "styled-components";
+import { keyframes } from "styled-components";
 
 //체크박스 반영
 export const CardWrapper = styled.div<{ $isOverdue: boolean; $isSelected: boolean }>`
@@ -334,4 +335,10 @@ export const Dot = styled.div<{ $active: boolean }>`
     $active ? theme.colors.Orange01 : theme.colors.Gray01};
   transition: all 0.3s ease;
   cursor: pointer;
+`;
+
+export const highlightFlash = keyframes`
+  0% { box-shadow: 0 0 20px 5px rgba(255, 215, 0, 0.8); border: 2px solid #FFD700; transform: scale(1.02); }
+  50% { box-shadow: 0 0 10px 2px rgba(255, 215, 0, 0.5); border: 2px solid #FFD700; transform: scale(1.02); }
+  100% { box-shadow: none; border: 1px solid transparent; transform: scale(1); }
 `;

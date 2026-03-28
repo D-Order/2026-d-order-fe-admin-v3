@@ -9,6 +9,9 @@ import Toast from "@components/ToastMessage/Toast";
 //경로설정하고 useNavigate 추가하기
 
 import NavItem from "./_components/NavItem";
+import { resetTable } from "@pages/tableView/_apis/resetTable";
+import { mergeTable } from "@pages/tableView/_apis/mergeTable";
+
 
 const SideBar = () => {
   const location = useLocation(); // 현재 경로 가져오기
@@ -32,17 +35,34 @@ const SideBar = () => {
     setIsToastVisible(true);
   };
 
-  // 버튼 클릭 핸들러
-  const handleResetClick = () => {
-    showToast("테이블이 성공적으로 초기화되었습니다."); // 메시지 설정
-    // TODO: 실제 API 초기화 로직 연결
-    clearSelection(); // 체크박스 해제
+// 초기화 버튼 클릭 핸들러
+  const handleResetClick = async () => {
+    try {
+      await resetTable(selectedTables);
+      showToast(`${selectedTables.join(", ")}번 테이블이 초기화되었습니다.`);
+      clearSelection();
+      // (추후 웹소켓이 연결되면 여기서 목록이 자동 갱신됩니다)
+    } catch (e: any) {
+      alert(e.message || "초기화에 실패했습니다.");
+    }
   };
-  const handleMergeClick = () => {
-    showToast("테이블이 병합되었습니다."); 
-    // TODO: 실제 병합 로직 연결
-    clearSelection(); 
+
+// 병합 버튼 클릭 핸들러
+  const handleMergeClick = async () => {
+    if (selectedTables.length < 2) {
+      alert("병합할 테이블을 2개 이상 선택해주세요.");
+      return;
+    }
+    try {
+      const res = await mergeTable(selectedTables);
+      const repNum = res.data.representive_table_num;
+      showToast(`테이블이 ${repNum}번으로 병합되었습니다.`);
+      clearSelection();
+    } catch (e: any) {
+      alert(e.message || "병합에 실패했습니다.");
+    }
   };
+
   return (
     <>
       <S.SideBarWrapper>
@@ -85,13 +105,13 @@ const SideBar = () => {
             onClick={() => handleNavClick(ROUTE_PATHS.MYPAGE)}
             alt="my"
           />
-          <NavItem
+          {/* <NavItem
             icon={IMAGE_CONSTANTS.NAV_DASHBOARD}
             activeIcon={IMAGE_CONSTANTS.NAV_DASHBOARD_ACTIVE}
             isActive={activeNav === ROUTE_PATHS.DASHBOARD}
             onClick={() => handleNavClick(ROUTE_PATHS.DASHBOARD)}
             alt="dashboard"
-          />
+          /> */}
         </S.NavWrapper>
         {/* 🌟 선택된 테이블이 있을 때만 버튼 노출 */}
         {selectedTables.length > 0 && (

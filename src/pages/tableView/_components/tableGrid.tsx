@@ -17,6 +17,7 @@ export interface TableOrder {
   totalAmount: number;
   orders: { menu: string; quantity: number }[];
   startedAt: string | null; 
+  group: { representativeTable: number } | null;
 }
 
 const chunk = <T,>(arr: T[], size: number) =>
@@ -27,8 +28,10 @@ const chunk = <T,>(arr: T[], size: number) =>
 const ITEMS_PER_PAGE = 15;
 
 const TableViewGrid: React.FC<Props> = ({ tableList, onSelectTable }) => {
-  // 🌟 부스의 이용 시간 제한 (시간 단위, ex: 2.00 -> 2)
+  // 부스의 이용 시간 제한 (시간 단위, ex: 2.00 -> 2)
   const [limitHours, setLimitHours] = useState<number | null>(null);
+  // 하이라이트 효과를 줄 대표 테이블 번호 상태
+  const [highlightedTable, setHighlightedTable] = useState<number | null>(null);
 
   useEffect(() => {
     const fetchBoothInfo = async () => {
@@ -54,7 +57,8 @@ const TableViewGrid: React.FC<Props> = ({ tableList, onSelectTable }) => {
             menu: o.name,
             quantity: o.qty,
           })),
-          startedAt: item.startedAt, // 🌟 입장 시간 매핑
+          startedAt: item.startedAt, 
+          group: item.group,
         };
         return { original: item, viewData };
       }),
@@ -95,6 +99,20 @@ const TableViewGrid: React.FC<Props> = ({ tableList, onSelectTable }) => {
     trackMouse: true,
   });
 
+  // 자식(병합된) 테이블 클릭 시 대표 테이블로 이동하는 함수
+  const handleGoToRepresentative = (repTableNum: number) => {
+    // 대표 테이블이 속한 페이지 인덱스 찾기
+    const tableIndex = mapped.findIndex((item) => item.original.tableNum === repTableNum);
+    if (tableIndex !== -1) {
+      const targetPage = Math.floor(tableIndex / ITEMS_PER_PAGE);
+      setPage(targetPage); // 해당 캐러셀 페이지로 이동
+      
+      // 하이라이트 효과 On (2초 뒤 Off)
+      setHighlightedTable(repTableNum);
+      setTimeout(() => setHighlightedTable(null), 2000);
+    }
+  };
+
   return (
     <S.GridWrapper {...handlers}>
       <S.GridViewport>
@@ -105,7 +123,9 @@ const TableViewGrid: React.FC<Props> = ({ tableList, onSelectTable }) => {
                 <div key={original.tableNum}>
                   <TableCard 
                     data={viewData} 
-                    limitHours={limitHours} // 🌟 Card에 제한 시간 전달
+                    limitHours={limitHours} 
+                    isHighlighted={highlightedTable === original.tableNum} 
+                    onGoToRepresentative={handleGoToRepresentative}
                     onSelect={() => onSelectTable(original)} 
                   />
                 </div>
