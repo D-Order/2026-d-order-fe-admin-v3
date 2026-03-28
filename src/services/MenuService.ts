@@ -6,7 +6,7 @@ import {
   SetMenu,
   TableInfo,
 } from '../pages/menu/Type/Menu_type';
-import { MenuRegistResponse } from './MenuServiceWithImg';
+// MenuRegistResponse: editSetMenu가 void로 변경되어 미사용 → import 제거
 
 export type MenuListCategoryV3 = 'FEE' | 'MENU' | 'DRINK' | 'SET';
 

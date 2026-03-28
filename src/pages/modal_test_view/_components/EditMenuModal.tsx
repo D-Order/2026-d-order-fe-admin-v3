@@ -98,20 +98,7 @@ const EditMenuModal = ({ handleCloseModal, defaultValues }: EditModalProps) => {
     setStock(String(clamped));
   };
 
-  const handleRemoveImage = (e?: React.MouseEvent<HTMLButtonElement>) => {
-    if (e) {
-      e.preventDefault();
-      e.stopPropagation();
-    }
-    if (UploadImg) {
-      URL.revokeObjectURL(UploadImg);
-    }
-    setUploadImg(null);
-    setImage(null);
-    if (fileInputRef.current) {
-      fileInputRef.current.value = "";
-    }
-  };
+  // handleRemoveImage 제거 — V3 수정 시 이미지 삭제 비활성화로 미사용
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
