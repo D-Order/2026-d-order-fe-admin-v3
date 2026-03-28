@@ -1,106 +1,86 @@
 // tableView/_apis/getTableList.ts
 import { instance } from "@services/instance";
 
-// ── 서버 원형(명세 + 예시 오타 허용)
-type RawLatestOrder = {
-  menu_name?: string;
-  menu_price?: number;
-  menu_num?: number;   // quantity 의미로 올 수 있음
-  quantity?: number;   // 혹은 이 키
-};
+// ── 1. 서버 응답 원형 (API 명세 기준) ──
+export interface RawOrder {
+  name: string;
+  quantity: number;
+  created_at: string;
+}
 
-type RawTableItem = {
-  table_id?: number;
-  table_num?: number;
-  table_amount?: number;  // 정식
-  table_price?: number;   // 예시 오타 대비
-  table_status?: "activate" | "out" | string;
-  table_stauts?: "activate" | "out" | string; // 오타
-  created_at?: string | null;
-  latest_orders?: RawLatestOrder[];
-};
+export interface RawTableGroup {
+  representative_table: number;
+}
 
-type RawResponse = {
-  status?: string | number;
-  message?: string;
-  code?: number;
-  data?: RawTableItem[] | null;
-};
+export interface RawTableItem {
+  table_num: number;
+  status: "IN_USE" | "AVAILABLE";
+  group: RawTableGroup | null;
+  accumulated_amount: number | null;
+  started_at: string | null;
+  order_list: RawOrder[];
+}
 
-// ── UI 친화 타입(기존 컴포넌트와의 호환 고려)
+export interface RawResponse {
+  message: string;
+  data: RawTableItem[];
+}
+
+// ── 2. UI 친화 타입 (컴포넌트 호환 유지) ──
 export type LatestOrder = {
   name: string;
   qty: number;
-  price?: number;
+  createdAt: string; // 기존 가격(price) 대신 주문 시간으로 대체
 };
 
 export type TableItem = {
   tableNum: number;
+  status: "IN_USE" | "AVAILABLE";
+  group: { representativeTable: number } | null; // 병합 정보 추가
   amount: number;
-  status: "activate" | "out" | "unknown";
-  createdAt: string | null;
+  startedAt: string | null; // 기존 createdAt 대신 startedAt으로 의미 명확화
   latestOrders: LatestOrder[];
 };
 
 export type TableListResponse = {
-  status: string;
   message: string;
-  code: number;
   data: TableItem[];
 };
 
-const normalize = (raw: RawTableItem): TableItem | null => {
-  if (raw.table_num == null) return null;
-
-  const amount =
-    typeof raw.table_amount === "number"
-      ? raw.table_amount
-      : typeof raw.table_price === "number"
-      ? raw.table_price
-      : 0;
-
-  const statusRaw = (raw.table_status ?? raw.table_stauts) as string | undefined;
-  const status: TableItem["status"] =
-    statusRaw === "activate" || statusRaw === "out" ? statusRaw : "unknown";
-
-  const latestOrders: LatestOrder[] = Array.isArray(raw.latest_orders)
-    ? raw.latest_orders.slice(0, 3).map((o) => ({
-        name: o.menu_name ?? "(이름 없음)",
-        qty:
-          typeof o.quantity === "number"
-            ? o.quantity
-            : typeof o.menu_num === "number"
-            ? o.menu_num
-            : 1,
-        price: typeof o.menu_price === "number" ? o.menu_price : undefined,
-      }))
-    : [];
-
+// ── 3. 데이터 정규화 함수 ──
+const normalize = (raw: RawTableItem): TableItem => {
   return {
     tableNum: raw.table_num,
-    amount,
-    status,
-    createdAt: raw.created_at ?? null,
-    latestOrders,
+    status: raw.status,
+    group: raw.group ? { representativeTable: raw.group.representative_table } : null,
+    amount: raw.accumulated_amount ?? 0,
+    startedAt: raw.started_at,
+    latestOrders: Array.isArray(raw.order_list)
+      ? raw.order_list.slice(0, 3).map((o) => ({
+          name: o.name,
+          qty: o.quantity,
+          createdAt: o.created_at,
+        }))
+      : [],
   };
 };
 
+// ── 4. API 호출 함수 ──
 export const getTableList = async (): Promise<TableListResponse> => {
-  const res = await instance.get<RawResponse>("/api/v2/booth/tables/");
+  const res = await instance.get<RawResponse>("/api/v3/django/booth/tables");
   const body = res.data;
 
   if (!Array.isArray(body?.data)) {
-    throw new Error(body?.message ?? "데이터가 비어 있습니다.");
+    throw new Error(body?.message ?? "데이터 형식이 올바르지 않습니다.");
   }
 
+  // 데이터 매핑 및 table_num 기반 정렬 (요구사항 반영)
   const data = body.data
     .map(normalize)
-    .filter((v): v is TableItem => v !== null);
+    .sort((a, b) => a.tableNum - b.tableNum);
 
   return {
-    status: String(body.status ?? "success"),
     message: body.message ?? "테이블 목록 조회 성공",
-    code: Number(body.code ?? 200),
     data,
   };
 };

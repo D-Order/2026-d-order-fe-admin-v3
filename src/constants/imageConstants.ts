@@ -23,6 +23,9 @@ import Nav_coupon_active from "../assets/icons/navCouponActive.svg";
 import Nav_dashboard from "../assets/icons/navDashboard.svg";
 import Nav_dashboard_active from "../assets/icons/navDashboardActive.svg";
 
+import BroomIcon from "../assets/icons/broom-icon.svg";
+import MergeIcon from "../assets/icons/merge-icon.svg";
+
 import Bell from "../assets/icons/bell.svg";
 import ReloadWhite from "../assets/icons/reloadWhite.svg";
 import BtnCheck from "../assets/icons/btnCheck.svg";
@@ -85,6 +88,9 @@ export const IMAGE_CONSTANTS = {
   NAV_COUPON_ACTIVE: Nav_coupon_active,
   NAV_DASHBOARD: Nav_dashboard,
   NAV_DASHBOARD_ACTIVE: Nav_dashboard_active,
+
+  Broom_Icon: BroomIcon,
+  Merge_Icon: MergeIcon,
 
   BELL: Bell,
   BACKWARD_BLACK: BackWard_Black,
