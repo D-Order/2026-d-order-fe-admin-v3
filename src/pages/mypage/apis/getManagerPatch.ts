@@ -1,12 +1,12 @@
 // mypage/apis/getManagerPatch.ts
-import axios, { AxiosError } from "axios"; 
-import { instance } from "@services/instance"; 
+import axios, { AxiosError } from "axios";
+import { instance } from "@services/instance"; // 경로 확인 필수
 
 export type SeatType = "PT" | "PP" | "NO";
 
 export interface BoothMyPageData {
   name: string;
-  table_max_cnt: number; // 변경 불가능한 값이지만 인터페이스 유지를 위해 포함
+  table_max_cnt: number; // 변경 불가능한 값
   bank: string;
   account: string;
   depositor: string;
@@ -21,19 +21,15 @@ export interface ApiEnvelope<T> {
   data: T | null;
 }
 
-// ❌ 기존에 있던 const BASE_URL = ... 와 const api = axios.create(...) 부분은 삭제했습니다.
-
 function normalizeAndThrow(error: unknown): never {
   if (axios.isAxiosError(error)) {
     const err = error as AxiosError<any>;
     const status = err.response?.status ?? 500;
     const body = err.response?.data;
 
-    // 400 에러의 경우 필드별 에러 배열이 올 수 있으므로 이를 처리
     let message = "부스 정보 수정 중 오류가 발생했습니다.";
     
     if (status === 400 && typeof body === "object" && body !== null) {
-      // 첫 번째 에러 메시지를 추출하여 표시
       const firstKey = Object.keys(body)[0];
       if (Array.isArray(body[firstKey])) {
           message = `${firstKey}: ${body[firstKey][0]}`;
@@ -43,7 +39,6 @@ function normalizeAndThrow(error: unknown): never {
     } else if (status === 401) {
       message = "자격 인증 데이터가 제공되지 않았습니다. 다시 로그인해주세요.";
     } else if (status === 403) {
-      // 403 에러 메시지 보강
       message = "권한이 없거나 CSRF 토큰 처리에 실패했습니다. 다시 시도해주세요.";
     }
 
@@ -72,11 +67,13 @@ export function normalizeSeatFields(patch: Partial<BoothMyPageData>) {
 export async function patchManagerInfo(
   payload: Partial<BoothMyPageData>
 ): Promise<ApiEnvelope<BoothMyPageData>> {
-  // 1) 과금 규칙 보정 (비활성화된 금액은 0으로 처리)
   const body: any = normalizeSeatFields(payload);
 
+  // ✅ 다시 부활! (변경 불가능한 테이블 수 제외)
+  if ('table_max_cnt' in body) {
+    delete body.table_max_cnt;
+  }
 
-  // 3) 숫자 캐스팅 (유효한 정수값 전송 목적)
   if (body.seat_fee_person != null) body.seat_fee_person = Number(body.seat_fee_person);
   if (body.seat_fee_table != null) body.seat_fee_table = Number(body.seat_fee_table);
   if (body.table_limit_hours != null) body.table_limit_hours = Number(body.table_limit_hours);

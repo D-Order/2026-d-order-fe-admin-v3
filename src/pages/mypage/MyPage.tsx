@@ -13,10 +13,10 @@ import { resetTableData } from './apis/resetTableData';
 import { LoadingSpinner } from '../menu/api/LoadingSpinner';
 
 import StoreNameField from './components/StoreNameField';
-import TableCountField from './components/TableCountField'; // ✅ 추가
 import SeatFeeField from './components/SeatFeeField';
 import TimeLimitField from './components/TimeLimitField';
 import AccountField from './components/AccountField';
+import ReadonlyField from './components/ReadonlyField'; // ✅ ReadonlyField 다시 사용
 import BottomActions from './components/BottomActions';
 
 import QR_icon from "@assets/icons/QR_icon.svg";
@@ -34,7 +34,8 @@ const labelToHours = (label: string) => {
   switch (label) { case '1시간': return 1; case '1시간 30분': return 1.5; case '2시간': return 2; case '2시간 30분': return 2.5; case '3시간': return 3; default: return 2; }
 };
 
-type PatchField = 'storeName' | 'tableCount' | 'account' | 'seat' | 'time'; // ✅ tableCount 추가
+// ✅ tableCount 제거됨
+type PatchField = 'storeName' | 'account' | 'seat' | 'time'; 
 
 const MyPage = () => {
   const [my, setMy] = useState<BoothMyPageData | null>(null);
@@ -46,7 +47,6 @@ const MyPage = () => {
   const [showResetModal, setShowResetModal] = useState(false);
 
   const [editingName, setEditingName] = useState(false);
-  const [editingTableCount, setEditingTableCount] = useState(false); // ✅ 추가
   const [editingAccount, setEditingAccount] = useState(false);
   const [editingSeat, setEditingSeat] = useState(false);
   const [editingTime, setEditingTime] = useState(false);
@@ -56,7 +56,6 @@ const MyPage = () => {
   const [isTimeDropdownOpen, setIsTimeDropdownOpen] = useState(false);
 
   const [storeName, setStoreName] = useState('');
-  const [tableCountLocal, setTableCountLocal] = useState(''); // ✅ 추가
   const [selectedBank, setSelectedBank] = useState('');
   const [owner, setOwner] = useState('');
   const [account, setAccount] = useState('');
@@ -85,7 +84,6 @@ const MyPage = () => {
   useEffect(() => {
     if (!my) return;
     if (!editingName) setStoreName(my.name ?? '');
-    if (!editingTableCount) setTableCountLocal(String(my.table_max_cnt ?? '')); // ✅ 추가
     if (!editingAccount) {
       setSelectedBank(my.bank ?? ''); setOwner(my.depositor ?? ''); setAccount(my.account ?? '');
     }
@@ -96,7 +94,7 @@ const MyPage = () => {
       setSeatAmountLocal(String(amt || ''));
     }
     if (!editingTime) setTimeLabelLocal(hoursToLabel(my.table_limit_hours));
-  }, [my, editingName, editingTableCount, editingAccount, editingSeat, editingTime]);
+  }, [my, editingName, editingAccount, editingSeat, editingTime]);
 
   useEffect(() => {
     setSeatTypeLocal(LabelToSeatType[seatTypeLabel as keyof typeof LabelToSeatType] ?? 'NO');
@@ -105,7 +103,6 @@ const MyPage = () => {
   const startEdit = (f: PatchField) => {
     if (!my) return;
     if (f === 'storeName') setEditingName(true);
-    if (f === 'tableCount') setEditingTableCount(true); // ✅
     if (f === 'account') setEditingAccount(true);
     if (f === 'seat') setEditingSeat(true);
     if (f === 'time') setEditingTime(true);
@@ -114,7 +111,6 @@ const MyPage = () => {
   const cancelEdit = (f: PatchField) => {
     if (!my) return;
     if (f === 'storeName') { setEditingName(false); setStoreName(my.name ?? ''); }
-    if (f === 'tableCount') { setEditingTableCount(false); setTableCountLocal(String(my.table_max_cnt ?? '')); } // ✅
     if (f === 'account') { setEditingAccount(false); setSelectedBank(my.bank ?? ''); setOwner(my.depositor ?? ''); setAccount(my.account ?? ''); }
     if (f === 'seat') {
       setEditingSeat(false); setSeatTypeLocal(my.seat_type); setSeatTypeLabel(SeatTypeLabel[my.seat_type as keyof typeof SeatTypeLabel] ?? '받지 않음');
@@ -128,7 +124,6 @@ const MyPage = () => {
     if (!my) return;
     const payload: Partial<BoothMyPageData> = {};
     if (f === 'storeName') payload.name = storeName.trim();
-    else if (f === 'tableCount') payload.table_max_cnt = Number(tableCountLocal) || 0; // ✅
     else if (f === 'account') { payload.bank = selectedBank.trim(); payload.depositor = owner.trim(); payload.account = account.trim(); }
     else if (f === 'seat') {
       payload.seat_type = seatTypeLocal;
@@ -146,7 +141,6 @@ const MyPage = () => {
       toast.success('저장되었습니다.', { icon: <img src={check} alt="체크" />, closeButton: false, style: toToastStyle() });
       await reload();
       if (f === 'storeName') setEditingName(false);
-      if (f === 'tableCount') setEditingTableCount(false); // ✅
       if (f === 'account') setEditingAccount(false);
       if (f === 'seat') setEditingSeat(false);
       if (f === 'time') setEditingTime(false);
@@ -157,10 +151,36 @@ const MyPage = () => {
 
   const toToastStyle = () => ({ backgroundColor: '#FF6E3F', color: '#FAFAFA', fontSize: '1rem', fontWeight: 800 as const, borderRadius: '8px', padding: '0.75rem 0.875rem' });
 
-  // ... (handleQrClick, handleLogout, handleReset 유지)
-  const handleQrClick = async () => { /* 유지 */ };
-  const handleLogout = async () => { /* 유지 */ };
-  const handleReset = async () => { /* 유지 */ };
+  const handleQrClick = async () => {
+    try {
+      await downloadManagerQR();
+      toast.success('QR코드 다운로드가 완료되었어요!', { icon: <img src={check} alt="체크" />, closeButton: false, style: toToastStyle() });
+    } catch (err: any) {
+      toast.error(err?.message || 'QR코드 다운로드에 실패했습니다.', { closeButton: false, style: toToastStyle() });
+    }
+  };
+
+  const handleLogout = async () => {
+    try {
+      await requestLogout();
+      localStorage.removeItem('accessToken'); 
+      toast.success('로그아웃되었습니다.', { closeButton: false, style: toToastStyle() });
+      window.location.href = '/login';
+    } catch (err: any) {
+      toast.error(err?.message || '로그아웃에 실패했습니다.', { closeButton: false, style: toToastStyle() });
+      window.location.href = '/login';
+    } finally { setShowLogoutModal(false); }
+  };
+
+  const handleReset = async () => {
+    try {
+      const res = await resetTableData();
+      toast.success(`데이터 포맷이 완료되었습니다. (삭제: ${res.data?.deleted_count}개)`, { icon: <img src={check} alt="체크" />, closeButton: false, style: toToastStyle() });
+      await reload(); 
+    } catch (err: any) {
+      toast.error(err?.message || '데이터 포맷에 실패했습니다.', { closeButton: false, style: toToastStyle() });
+    } finally { setShowResetModal(false); }
+  };
 
   if (loading || updating) return <LoadingSpinner />;
   if (error) return <div>{error}</div>;
@@ -183,11 +203,8 @@ const MyPage = () => {
             onEdit={() => startEdit('storeName')} onConfirm={() => confirmEdit('storeName')} onCancel={() => cancelEdit('storeName')}
           />
 
-          {/* ✅ 새로 만든 TableCountField 연결 */}
-          <TableCountField
-            value={my.table_max_cnt} editing={editingTableCount} input={tableCountLocal} setInput={setTableCountLocal}
-            onEdit={() => startEdit('tableCount')} onConfirm={() => confirmEdit('tableCount')} onCancel={() => cancelEdit('tableCount')}
-          />
+          {/* ✅ 다시 ReadonlyField로 원상복구! */}
+          <ReadonlyField label="테이블 수" value={my.table_max_cnt} />
 
           <SeatFeeField
             editing={editingSeat} seatTypeLabel={seatTypeLabel} setSeatTypeLabel={setSeatTypeLabel} amount={seatAmountLocal} setAmount={setSeatAmountLocal}

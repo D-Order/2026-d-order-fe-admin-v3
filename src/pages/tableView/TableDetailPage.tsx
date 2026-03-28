@@ -1,27 +1,47 @@
 // tableView/TableDetailPage.tsx
+import { useState } from "react";
 import * as S from "./TableDetailPage.styled";
 import TableDetail from "./_components/detailPage/tableDetail";
 import { useParams, useNavigate } from "react-router-dom";
 import { useTableDetail } from "./_hooks/useTableDetail";
 import { LoadingSpinner } from "./_apis/loadingSpinner";
+import Toast from "@components/ToastMessage/Toast";
+
+// 🌟 상세 전용 웹소켓 훅 임포트
+import { useTableDetailWS } from "./_ws/useTableDetailWS";
 
 const TableDetailPage = () => {
   const { tableNum } = useParams();
   const navigate = useNavigate();
+  const [toastMsg, setToastMsg] = useState<string>("");
 
   const parsedNum = Number(tableNum);
+  
+  // 🌟 refetch를 가져옵니다.
   const {
-    detail: tableDetail,          
+    detail: tableDetail,
     loading,
-    errorMsg: error,               
-    // refetch,                      
+    errorMsg: error,
+    refetch, 
   } = useTableDetail(Number.isFinite(parsedNum) ? parsedNum : -1);
+
+  // 🌟 특정 테이블 번호 구독 웹소켓 연결
+  useTableDetailWS({
+    tableNum: parsedNum,
+    onConnectionEstablished: () => console.log(`[WS 상세-${parsedNum}] 연결 완료`),
+    onOrderUpdate: () => {
+      // 새로운 주문이 들어오면 내역을 갱신하고 알림을 띄웁니다.
+      refetch();
+      setToastMsg("🔔 새로운 주문이 추가되었습니다!");
+    }
+  });
 
   if (!Number.isFinite(parsedNum)) {
     return <div>잘못된 테이블 번호입니다.</div>;
   }
 
-  if (loading) return <LoadingSpinner />;
+  // 최초 로딩 시에만 스피너 (데이터 갱신 중에는 기존 UI 유지)
+  if (loading && !tableDetail) return <LoadingSpinner />;
   if (error || !tableDetail) return <div>에러 발생 또는 데이터 없음</div>;
 
   return (
@@ -29,7 +49,14 @@ const TableDetailPage = () => {
       <TableDetail
         key={tableDetail.table_num}
         data={tableDetail}
-        onBack={() => navigate("/table-view")} // ✅ 뒤로가기
+        onBack={() => navigate("/table-view")}
+      />
+      
+      {/* 상세 페이지 전용 토스트 (주문 업데이트 등) */}
+      <Toast 
+        message={toastMsg} 
+        isVisible={!!toastMsg} 
+        onClose={() => setToastMsg("")} 
       />
     </S.PageWrapper>
   );
