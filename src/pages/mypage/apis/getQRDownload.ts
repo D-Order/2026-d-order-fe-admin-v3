@@ -1,136 +1,100 @@
 // mypage/apis/getQRDownload.ts
 import axios, { AxiosError } from "axios";
 
+/** QR 조회 응답 인터페이스 */
+export interface QrResponseData {
+    qr_image_url: string;
+}
+
+export interface ApiEnvelope<T> {
+    message: string;
+    data: T | null;
+}
+
+export interface ApiErrorBody {
+    detail?: string;
+    message?: string;
+}
+
 const BASE_URL = import.meta.env.VITE_BASE_URL ?? "";
 
 const api = axios.create({
     baseURL: BASE_URL,
-    withCredentials: false,
+    withCredentials: true, // 🔒 쿠키 자동 전송
     headers: { "Content-Type": "application/json" },
 });
 
-function getLocalToken(): string | null {
-    return (
-        localStorage.getItem("accessToken") ||
-        localStorage.getItem("access") ||
-        localStorage.getItem("token")
-    );
-}
-
-function authHeaders(token?: string) {
-    const t = token ?? getLocalToken();
-    return t ? { Authorization: `Bearer ${t}` } : {};
-}
-
-function parseFilenameFromHeader(disposition?: string | null): string | null {
-    if (!disposition) return null;
-    const m = /filename\*=UTF-8''([^;]+)|filename="?([^";]+)"?/i.exec(disposition);
-    try {
-        return decodeURIComponent(m?.[1] || m?.[2] || "");
-    } catch {
-        return m?.[1] || m?.[2] || null;
-    }
-}
-
-function inferExtFromContentType(ct?: string | null): string {
-    if (!ct) return ".bin";
-    if (ct.includes("png")) return ".png";
-    if (ct.includes("jpeg") || ct.includes("jpg")) return ".jpg";
-    if (ct.includes("webp")) return ".webp";
-    if (ct.includes("pdf")) return ".pdf";
-    if (ct.includes("zip")) return ".zip";
-    return ".bin";
-}
-
-function normalizeAndThrow(error: unknown, ctx?: any): never {
+function normalizeAndThrow(error: unknown): never {
     if (axios.isAxiosError(error)) {
-        const err = error as AxiosError<{ message?: string }>;
+        const err = error as AxiosError<ApiErrorBody>;
         const status = err.response?.status ?? 0;
         const body = err.response?.data;
-        const params = (err.config as any)?.params;
-        const serverMsg = body?.message;
 
-        if (serverMsg) {
-        console.error(`[QR][${status}] ${serverMsg}`);
-        } else {
-        console.error(`[QR][${status}] 요청 실패`);
-        }
-        console.error("[QR][DEBUG]", { status, params, body, ctx });
+        const msg =
+        body?.detail ||
+        body?.message ||
+        (status === 401
+            ? "자격 인증 데이터가 제공되지 않았습니다."
+            : status === 404
+            ? "QR 코드를 찾을 수 없습니다."
+            : "QR 코드 조회 중 오류가 발생했습니다.");
 
-        const fallback =
-        status === 404
-            ? "QR 코드가 아직 생성되지 않았습니다."
-            : status === 400
-            ? "요청이 올바르지 않습니다. (필수 파라미터/값 확인)"
-            : status === 401
-            ? "로그인이 필요합니다."
-            : status === 403
-            ? "접근 권한이 없습니다."
-            : "QR 코드 다운로드에 실패했습니다.";
-        throw new Error(serverMsg || fallback);
+        console.error(`[QR][${status}]`, msg);
+        throw new Error(msg);
     }
+    
     console.error("[QR] 알 수 없는 오류", error);
-    throw new Error("QR 코드 다운로드에 실패했습니다.");
+    throw new Error("QR 코드 처리 중 오류가 발생했습니다.");
 }
 
-/** 내부: 실제 호출 (booth_id 사용) */
-async function fetchQRByBoothId(boothId: number, token?: string) {
-    console.info("[QR] 요청 시작 (booth_id):", boothId);
-
-    const res = await api.get(`/api/v2/manager/qr-download/`, {
-        params: { booth_id: boothId }, // ✅ 여기만 booth_id 로!
-        headers: { ...authHeaders(token) },
-        responseType: "blob",
-    });
-
-    const contentType = (res.headers["content-type"] as string) || "application/octet-stream";
-    const blob = new Blob([res.data], { type: contentType });
-    const filenameFromHeader = parseFilenameFromHeader(
-        res.headers["content-disposition"] as string | undefined
-    );
-    return { blob, contentType, filenameFromHeader };
-}
-
-/** ✅ QR 코드 다운로드 (booth_id 사용) */
-export async function downloadManagerQR( // 이름은 유지해도 되고, 혼동되면 downloadBoothQR로 바꿔도 OK
-    boothId: number,
-    options?: { token?: string; filename?: string }
-    ): Promise<void> {
+/** 1) QR 이미지 URL 조회 API 호출 */
+export async function getManagerQRUrl(): Promise<string> {
     try {
-        const { blob, contentType, filenameFromHeader } = await fetchQRByBoothId(
-        boothId,
-        options?.token
+        const res = await api.get<ApiEnvelope<QrResponseData>>(
+        "/api/v3/django/booth/mypage/qr-download"
         );
+        
+        const url = res.data.data?.qr_image_url;
+        if (!url) {
+        throw new Error("QR 코드 URL이 존재하지 않습니다.");
+        }
+        return url;
+    } catch (e) {
+        normalizeAndThrow(e);
+    }
+}
 
-        const filename =
-        options?.filename ||
-        filenameFromHeader ||
-        `qr-booth-${boothId}${inferExtFromContentType(contentType)}`;
+export async function downloadManagerQR(filename = "booth-qr.png"): Promise<void> {
+    try {
+        // 1. URL 받아오기
+        const qrUrl = await getManagerQRUrl();
 
-        const url = window.URL.createObjectURL(blob);
+        // 2. 해당 URL에서 이미지 Blob 가져오기 (CORS 문제가 없다면 fetch 사용)
+        const imageRes = await fetch(qrUrl);
+        if (!imageRes.ok) throw new Error("이미지를 가져오는 데 실패했습니다.");
+        
+        const blob = await imageRes.blob();
+        const objectUrl = window.URL.createObjectURL(blob);
+
+        // 3. 브라우저 다운로드 트리거
         const a = document.createElement("a");
-        a.href = url;
+        a.href = objectUrl;
         a.download = filename;
         document.body.appendChild(a);
         a.click();
         a.remove();
-        window.URL.revokeObjectURL(url);
+        window.URL.revokeObjectURL(objectUrl);
 
         console.info("[QR] 다운로드 완료:", filename);
-    } catch (e) {
-        normalizeAndThrow(e, { tried: "booth_id", id: boothId });
-    }
-}
-
-/** Blob만 필요할 때 */
-export async function fetchManagerQRBlob(
-    boothId: number,
-    options?: { token?: string }
-    ): Promise<Blob> {
-    try {
-        const { blob } = await fetchQRByBoothId(boothId, options?.token);
-        return blob;
-    } catch (e) {
-        normalizeAndThrow(e, { tried: "booth_id", id: boothId });
+    } catch (e: any) {
+        console.error("[QR] 다운로드 실패", e);
+        // URL을 직접 여는 폴백(Fallback) 처리 - CORS 이슈로 fetch가 막힐 경우 새 창에서 열기
+        if (e.message === "이미지를 가져오는 데 실패했습니다." || e.name === "TypeError") {
+        getManagerQRUrl().then(url => {
+            window.open(url, "_blank");
+        }).catch(console.error);
+        } else {
+        throw e;
+        }
     }
 }

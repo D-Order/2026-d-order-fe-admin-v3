@@ -2,111 +2,148 @@
 import * as S from './tableComponents.styled';
 import { TABLEPAGE_CONSTANTS } from '../_constants/tableConstants';
 import ACCO from "@assets/images/character.svg";
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useTableSelection } from '../../../context/TableSelectionContext';
 
-interface TableCardData {
+// tableGrid에서 넘겨주는 데이터 타입을 여기서 명확히 정의하여 import 에러(순환참조 등) 방지
+export interface TableCardData {
   tableNumber: number;
   totalAmount: number;
-  orderedAt: string;
-  orders: {
-    menu: string;
-    quantity: number;
-  }[];
-  isOverdue: boolean;
+  orders: { menu: string; quantity: number }[];
+  startedAt: string | null;
+  group: { representativeTable: number } | null;
 }
 
 interface Props {
   data: TableCardData;
+  limitHours: number | null;
+  isHighlighted?: boolean;
+  onGoToRepresentative?: (repNum: number) => void;
   onSelect?: () => void;
 }
 
-const TableCard: React.FC<Props> = ({ data, onSelect }) => {
+const TableCard: React.FC<Props> = ({ data, limitHours, isHighlighted, onGoToRepresentative, onSelect }) => {
   const { selectedTables, toggleTableSelection } = useTableSelection();
   const isSelected = selectedTables.includes(data.tableNumber); 
-  const formattedTableNum = `T ${String(data.tableNumber).padStart(2, '0')}`;
-  const [elapsedTime, setElapsedTime] = useState<string>("00:00");
   
-  // 수정필요~!~!~!~!~!~
-  // 이용시간 계산 로직
-  const calculateElapsedTime = () => {
-    // 1. 데이터가 없거나 주문이 없으면 즉시 반환
-    if (!data.orderedAt || data.orders.length === 0) return "00:00";
+  // 🌟 병합 여부 판단
+  const isMerged = !!data.group;
+  const repNum = data.group?.representativeTable;
+  const isChild = isMerged && repNum !== data.tableNumber;
 
-    const orderDate = new Date(data.orderedAt);
+  // 병합된 테이블이면 🔗 기호를 붙이고, 자식 테이블이면 대표 번호를 표시
+  // ex) 2번(대표), 7번(자식), 32번(자식) 모두 "🔗 T 02"로 표시됨
+  const displayTitle = isMerged 
+    ? (isChild ? `🔗 T ${String(repNum).padStart(2, '0')}` : `T ${String(data.tableNumber).padStart(2, '0')} 👑`)
+    : `T ${String(data.tableNumber).padStart(2, '0')}`;
+
+  const [elapsedTime, setElapsedTime] = useState<string>("00:00");
+  const [isOverdue, setIsOverdue] = useState<boolean>(false);
+  
+  // 입장 시간 기반으로 경과 시간 및 초과 여부 계산 로직
+  const checkTimeAndStatus = useCallback(() => {
+    // 자식 테이블은 시간을 계산하지 않음 (대표 테이블만 보여주면 됨)
+    if (isChild || !data.startedAt) {
+      setElapsedTime("00:00");
+      setIsOverdue(false);
+      return;
+    }
+
+    const orderDate = new Date(data.startedAt);
     const currentDate = new Date();
 
-    // 2. 유효한 날짜인지 체크 (Invalid Date 방지)
-    if (isNaN(orderDate.getTime())) return "00:00";
+    if (isNaN(orderDate.getTime())) return;
 
     const diffInMs = currentDate.getTime() - orderDate.getTime();
-    
-    // 3. 미래 시간이 찍히는 경우 방어 로직
-    if (diffInMs <= 0) return "00:00";
+    if (diffInMs <= 0) {
+      setElapsedTime("00:00");
+      setIsOverdue(false);
+      return;
+    }
 
     const totalMinutes = Math.floor(diffInMs / (1000 * 60));
     const hours = Math.floor(totalMinutes / 60);
     const minutes = totalMinutes % 60;
 
-    // 4. 숫자가 유효한지 최종 확인 후 포맷팅
     const hh = isNaN(hours) ? "00" : String(hours).padStart(2, '0');
     const mm = isNaN(minutes) ? "00" : String(minutes).padStart(2, '0');
 
-    return `${hh}:${mm}`;
-  };
+    setElapsedTime(`${hh}:${mm}`);
 
-  const handleCheckboxChange = () => {
-    toggleTableSelection(data.tableNumber); // 🌟 체크 상태 토글
-  };
+    if (limitHours && limitHours > 0) {
+      setIsOverdue(totalMinutes >= limitHours * 60);
+    } else {
+      setIsOverdue(false);
+    }
+  }, [data.startedAt, limitHours, isChild]);
 
-  // 실시간 업데이트 useEffect
+  // 실시간 업데이트 (1분마다 계산)
   useEffect(() => {
-    // 초기 실행
-    setElapsedTime(calculateElapsedTime());
+    checkTimeAndStatus(); // 초기 계산
 
     const timer = setInterval(() => {
-      setElapsedTime(calculateElapsedTime());
+      checkTimeAndStatus();
     }, 60000);
 
     return () => clearInterval(timer);
-  }, [data.orderedAt, data.orders.length]);
+  }, [checkTimeAndStatus]);
   
-  //!~!~!~!~!~!~!~!~!!!~!~!
+  const handleCheckboxChange = () => {
+    toggleTableSelection(data.tableNumber);
+  };
+
   const handleCardClick = (e: React.MouseEvent) => {
+    // 체크박스 클릭 시 상세페이지 진입 방지
     if ((e.target as HTMLElement).tagName === 'INPUT') return;
     
-    if (data.orders.length === 0) {
-      alert("주문 내역이 없는 테이블입니다.");
+    // 병합된 자식 테이블(e.g., 7번, 32번)을 클릭한 경우 대표 테이블로 캐러셀 이동
+    if (isChild && repNum && onGoToRepresentative) {
+      onGoToRepresentative(repNum);
+      return; 
+    }
+    
+    // 빈 테이블 차단 (입장시간 없고 주문도 없는 경우)
+    if (!data.startedAt && data.orders.length === 0) {
+      alert("주문 내역이 없는 빈 테이블입니다.");
       return;
     }
-    if (onSelect) onSelect();
-  };
-  
 
+    if (onSelect) onSelect(); 
+  };
 
   return (
     <S.CardWrapper 
-      $isOverdue={data.isOverdue} 
+      $isOverdue={isOverdue} 
       $isSelected={isSelected}
       onClick={handleCardClick}
+      // Styled-components 타입 에러를 방지하기 위해 style 속성으로 하이라이트 효과 직접 부여
+      style={isHighlighted ? {
+        boxShadow: "0 0 20px 5px rgba(255, 215, 0, 0.8)",
+        border: "2px solid #FFD700",
+        transform: "scale(1.02)",
+        transition: "all 0.3s ease-out"
+      } : { transition: "all 0.3s ease-out" }}
     >
-      <S.TableInfo $isOverdue={data.isOverdue}>
+      <S.TableInfo $isOverdue={isOverdue}>
         <div style={{ display: 'flex', alignItems: 'center' }}>
-          <input 
-            type="checkbox" 
-            checked={isSelected}
-            onChange={handleCheckboxChange} // 🌟 토글 함수 연결
-            onClick={(e) => e.stopPropagation()} 
-          />
-          <p className="tableNumber">{formattedTableNum}</p>
+          {/* 종속된 자식 테이블은 체크박스를 숨겨서 중복 선택 및 초기화 오류 방지 */}
+          {!isChild && (
+            <input 
+              type="checkbox" 
+              checked={isSelected}
+              onChange={handleCheckboxChange} 
+              onClick={(e) => e.stopPropagation()} 
+            />
+          )}
+          <p className="tableNumber">{displayTitle}</p>
         </div>
-        <p className="orderTime">{data.orders.length > 0 ? elapsedTime : "00:00"}</p>
+        {/* 병합된 자식 테이블은 시간 표시 생략 */}
+        <p className="orderTime">{(!isChild && data.startedAt) ? elapsedTime : ""}</p>
       </S.TableInfo>
       
       <S.DivideLine />
       <S.MenuContainer>
         <S.MenuList>
-          
           {data.orders.length === 0 && (
             <S.EmptyImage src={ACCO} alt="빈 테이블" />
           )}
@@ -123,12 +160,9 @@ const TableCard: React.FC<Props> = ({ data, onSelect }) => {
               />
             </S.ItemRow>
           ))}
-          
         </S.MenuList>
         {data.orders.length > 0 && <S.ToDetail>더보기</S.ToDetail>}
-
       </S.MenuContainer>
-
 
       <S.TotalPrice>
         <p className="totalPrice">총 금액 {data.totalAmount.toLocaleString()}원</p>

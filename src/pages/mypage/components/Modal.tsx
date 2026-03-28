@@ -1,19 +1,22 @@
+// mypage/components/Modal.tsx
 import styled from "styled-components";
 
-const Modal = ({
-  onCancel,
-  onLogout,
-}: {
+type ModalProps = {
+  title: string;
+  confirmText: string;
   onCancel: () => void;
-  onLogout: () => void;
-}) => {
+  onConfirm: () => void;
+};
+
+const Modal = ({ title, confirmText, onCancel, onConfirm }: ModalProps) => {
   return (
-    <Overlay>
-      <Container>
-        <Title>로그아웃 하시겠어요?</Title>
+    <Overlay onClick={onCancel}>
+      {/* e.stopPropagation()을 통해 모달 내부 클릭 시 닫히지 않도록 방지 */}
+      <Container onClick={(e) => e.stopPropagation()}>
+        <Title>{title}</Title>
         <Bottom>
           <Cancel onClick={onCancel}>취소</Cancel>
-          <Logout onClick={onLogout}>로그아웃</Logout>
+          <ConfirmButton onClick={onConfirm}>{confirmText}</ConfirmButton>
         </Bottom>
       </Container>
     </Overlay>
@@ -44,7 +47,7 @@ const Container = styled.section`
   background-color: ${({ theme }) => theme.colors.Gray01};
   border-radius: 0.875rem;
   z-index: 1000;
-  pointer: cursor;
+  cursor: default; /* 컨테이너 내부는 기본 커서 유지 */
 `;
 
 const Title = styled.div`
@@ -60,8 +63,6 @@ const Bottom = styled.div`
   display: flex;
   height: 3.375rem;
   border-top: 0.5px solid ${({ theme }) => theme.colors.Black02};
-
-cursor: pointer;
 `;
 
 const Cancel = styled.div`
@@ -75,7 +76,7 @@ const Cancel = styled.div`
   border-right: 0.5px solid ${({ theme }) => theme.colors.Black02};
 `;
 
-const Logout = styled.div`
+const ConfirmButton = styled.div`
   display: flex;
   width: 50%;
   justify-content: center;

@@ -8,6 +8,7 @@ import ResetModal from "../../_modal/ResetModal";
 import EmptyOrder from "./emptyOrder";
 import CancelErrorModal from "../../_modal/CancelErrorModal";
 import { instance } from "@services/instance";
+import Toast from "@components/ToastMessage/Toast";
 
 import {
   getTableDetail,
@@ -48,7 +49,7 @@ const toImageUrl = (p?: string | null): string | null => {
 
 const TableDetail: React.FC<Props> = ({ data, onBack }) => {
   const navigate = useNavigate();
-
+  const [toastMsg, setToastMsg] = useState<string>("");
   // 선택한 메뉴의 정보 (취소를 위해 id 필수)
   const [selectedMenu, setSelectedMenu] = useState<{
     id: number;
@@ -203,17 +204,22 @@ const TableDetail: React.FC<Props> = ({ data, onBack }) => {
         />
       )}
 
-      {/* 확인 모달 */}
+{/* 1. 확인 모달 (취소 로직) */}
       {confirmInfo && (
         <CancelConfirmModal
           cancelCount={confirmInfo.cancelQuantity}
           totalCountBefore={confirmInfo.maxQuantity}
           onConfirm={async () => {
             try {
-              // ⬅️ 새 API 요청 (단일 항목 ID, 취소 수량)
+              // API 요청
               await cancelOrderItem(confirmInfo.id, confirmInfo.cancelQuantity);
+              
+              // 모달 닫기 및 데이터 갱신
               setConfirmInfo(null);
-              await refetchTableDetail(); // 성공 시 데이터 갱신
+              await refetchTableDetail(); 
+
+              // ✅ 주문 취소 토스트 띄우기
+              setToastMsg(`주문 ${confirmInfo.cancelQuantity}건이 취소되었어요!`);
             } catch (e: any) {
               setConfirmInfo(null);
               setErrorModalMsg(e.message || "주문 취소 중 오류가 발생했습니다.");
@@ -225,14 +231,19 @@ const TableDetail: React.FC<Props> = ({ data, onBack }) => {
         />
       )}
 
-      {/* 초기화 모달 */}
+      {/* 2. 초기화 모달 */}
       {showResetModal && (
         <ResetModal
           resetTable={async () => {
             try {
-              await resetTableAPI([tableDetailData.table_num]); 
+              await resetTableAPI([tableDetailData.table_num]);
               setShowResetModal(false);
-              await refetchTableDetail(); 
+              
+              // ✅ 목록으로 돌아갈 때 state를 넘겨주어, TableViewPage에서 토스트를 띄우도록 함
+              navigate("/table-view", { 
+                replace: true, 
+                state: { resetToastMessage: `${tableDetailData.table_num}번 테이블이 초기화되었습니다.` } 
+              });
             } catch (e: any) {
               console.error("테이블 초기화 실패:", e);
               alert(e.message || "테이블 초기화에 실패했습니다.");
@@ -250,6 +261,12 @@ const TableDetail: React.FC<Props> = ({ data, onBack }) => {
           onClose={() => setErrorModalMsg(null)}
         />
       )}
+      {/* ✅ 주문 취소 완료 토스트 컴포넌트 렌더링 */}
+      <Toast 
+        message={toastMsg} 
+        isVisible={!!toastMsg} 
+        onClose={() => setToastMsg("")} 
+      />
     </>
   );
 };

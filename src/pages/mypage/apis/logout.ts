@@ -1,18 +1,20 @@
 // mypage/apis/logout.ts
 import axios, { AxiosError } from "axios";
 
-export interface ApiEnvelope<T> {
+export interface ApiEnvelope<T = null> {
     message: string;
-    code: number;
-    data: T | null;
+    data?: T | null;
 }
 
 const BASE_URL = import.meta.env.VITE_BASE_URL ?? "";
 
 const api = axios.create({
     baseURL: BASE_URL,
-    // 쿠키 기반 세션/토큰 삭제를 서버가 처리하는 경우가 많아, withCredentials를 켭니다.
+    // 🔒 쿠키 자동 전송 (세션/토큰 삭제 처리용)
     withCredentials: true,
+    // Django 기본 CSRF 설정 (DELETE 요청 시 필요)
+    xsrfCookieName: "csrftoken",
+    xsrfHeaderName: "X-CSRFToken",
     headers: { "Content-Type": "application/json" },
 });
 
@@ -20,24 +22,27 @@ function normalizeAndThrow(error: unknown): never {
     if (axios.isAxiosError(error)) {
         const err = error as AxiosError<any>;
         const status = err.response?.status ?? 500;
-        const body = err.response?.data as Partial<ApiEnvelope<null>> | undefined;
-        throw {
-        message:
-            body?.message ||
-            (status === 400
-            ? "이미 로그아웃된 상태입니다."
-            : "로그아웃에 실패 했습니다."),
-        code: body?.code ?? status,
-        data: null,
-        } as ApiEnvelope<null>;
+        const body = err.response?.data;
+
+        const message =
+        body?.message ||
+        (status === 400
+            ? "이미 로그아웃된 상태이거나 잘못된 요청입니다."
+            : status === 401
+            ? "자격 인증 데이터가 제공되지 않았습니다."
+            : "로그아웃에 실패했습니다.");
+
+        console.error("[LOGOUT][ERROR]", { status, message });
+        throw { message, data: null };
     }
-    throw { message: "로그아웃에 실패 했습니다.", code: 500, data: null } as ApiEnvelope<null>;
+    
+    throw { message: "로그아웃에 실패했습니다.", data: null };
 }
 
-/** 로그아웃: DELETE /api/v2/manager/auth/ */
-export async function requestLogout(): Promise<ApiEnvelope<null>> {
+/** 로그아웃: DELETE /api/v3/django/auth/ */
+export async function requestLogout(): Promise<ApiEnvelope> {
     try {
-        const res = await api.delete<ApiEnvelope<null>>("/api/v2/manager/auth/");
+        const res = await api.delete<ApiEnvelope>("/api/v3/django/auth/");
         return res.data;
     } catch (e) {
         normalizeAndThrow(e);

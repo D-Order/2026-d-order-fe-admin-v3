@@ -9,6 +9,9 @@ import UserService from './UserService';
 export const instance: AxiosInstance = axios.create({
   baseURL: import.meta.env.VITE_BASE_URL,
   withCredentials: true,
+  // 👇 Axios가 자동으로 csrftoken 쿠키를 읽어서 X-CSRFToken 헤더에 넣도록 지시
+  xsrfCookieName: 'csrftoken',
+  xsrfHeaderName: 'X-CSRFToken',
   headers: {
     'Content-Type': 'application/json',
   },
@@ -21,6 +24,11 @@ const isAuthEndpoint = (url?: string) =>
 
 const isCsrfTokenEndpoint = (url?: string) =>
   url?.includes('/api/v3/django/auth/csrf-token/');
+
+const isUnsafeMethod = (method?: string) => {
+  const m = (method || 'GET').toUpperCase();
+  return !['GET', 'HEAD', 'OPTIONS', 'TRACE'].includes(m);
+};
 
 const fetchCsrfToken = async (): Promise<string | null> => {
   const res = await instance.get('/api/v3/django/auth/csrf-token/');
@@ -85,11 +93,22 @@ instance.interceptors.request.use(
     if (token && !isAuthEndpoint(config.url)) {
       config.headers['Authorization'] = `Bearer ${token}`;
     }
+
+    // 👇 핵심 해결 로직: POST, PATCH 등 안전하지 않은 메서드일 때 직접 쿠키에서 꺼내서 헤더에 강제 주입!
+    if (isUnsafeMethod(config.method)) {
+      const csrfCookie = document.cookie
+        .split('; ')
+        .find((row) => row.startsWith('csrftoken='))
+        ?.split('=')[1];
+      if (csrfCookie) {
+        config.headers['X-CSRFToken'] = csrfCookie;
+      }
+    }
+
     return config;
   },
   (error: AxiosError) => Promise.reject(error),
 );
-
 let isRefreshing = false;
 let failedQueue: {
   resolve: (token: string | null) => void;
@@ -224,10 +243,13 @@ instance.interceptors.response.use(
   },
 );
 
-//이미지처리로직 수정
+// 이미지 인스턴스도 동일하게 추가해 줍니다.
 export const instatnceWithImg: AxiosInstance = axios.create({
   baseURL: import.meta.env.VITE_BASE_URL,
   withCredentials: true,
+  // 👇 추가
+  xsrfCookieName: 'csrftoken',
+  xsrfHeaderName: 'X-CSRFToken',
   headers: {
     'Content-Type': 'multipart/form-data',
   },
@@ -235,12 +257,36 @@ export const instatnceWithImg: AxiosInstance = axios.create({
 });
 
 // 요청 인터셉터 - 토큰을 헤더에 추가
-instatnceWithImg.interceptors.request.use(
-  (config: InternalAxiosRequestConfig) => {
+instance.interceptors.request.use(
+  async (config: InternalAxiosRequestConfig) => {
     const token = localStorage.getItem('accessToken');
     if (token && !isAuthEndpoint(config.url)) {
       config.headers['Authorization'] = `Bearer ${token}`;
     }
+
+    // 🚨 핵심 수정: POST, PATCH 등 안전하지 않은 메서드일 때
+    if (isUnsafeMethod(config.method) && !isCsrfTokenEndpoint(config.url)) {
+      // 1. 브라우저 쿠키에서 csrftoken 찾기
+      let csrfToken = document.cookie
+        .split('; ')
+        .find((row) => row.startsWith('csrftoken='))
+        ?.split('=')[1];
+
+      // 2. 만약 쿠키에 토큰이 없다면, 에러 맞기 전에 '미리' 서버에서 받아오기 (선빵)
+      if (!csrfToken) {
+        try {
+          csrfToken = await fetchCsrfToken() ?? undefined;
+        } catch (e) {
+          console.error("CSRF 토큰 사전 발급 실패", e);
+        }
+      }
+
+      // 3. 토큰이 확보되었다면 헤더에 주입
+      if (csrfToken) {
+        config.headers['X-CSRFToken'] = csrfToken;
+      }
+    }
+
     return config;
   },
   (error: AxiosError) => Promise.reject(error),
