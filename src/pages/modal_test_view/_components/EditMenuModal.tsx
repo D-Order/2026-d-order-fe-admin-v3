@@ -120,12 +120,17 @@ const EditMenuModal = ({ handleCloseModal, defaultValues }: EditModalProps) => {
       return;
     }
 
+    // V3 필드명: menu_name→name, menu_description→description,
+    // menu_category→category(MENU/DRINK), menu_price→price, menu_amount→stock
+    const categoryMap: Record<string, string> = {
+      '메뉴': 'MENU', '메인': 'MENU', '음료': 'DRINK',
+    };
     const formData = new FormData();
-    formData.append("menu_name", name);
-    formData.append("menu_description", desc || "");
-    formData.append("menu_category", category);
-    formData.append("menu_price", price);
-    formData.append("menu_amount", stock);
+    formData.append("name", name);
+    formData.append("description", desc || "");
+    formData.append("category", categoryMap[category] ?? category);
+    formData.append("price", price);
+    formData.append("stock", stock);
 
     if (image instanceof File) {
       if (image.size > MAX_FILE_SIZE) {
@@ -135,11 +140,11 @@ const EditMenuModal = ({ handleCloseModal, defaultValues }: EditModalProps) => {
 
       // 이미지 압축 로직직
       if (image.size <= MIN_FILE_SIZE) {
-        formData.append("menu_image", image);
+        formData.append("image", image);
       } else {
         try {
           const correctedFile = await compressImage(image);
-          formData.append("menu_image", correctedFile);
+          formData.append("image", correctedFile);
         } catch (e) {
           console.log(e);
         } finally {
@@ -157,7 +162,7 @@ const EditMenuModal = ({ handleCloseModal, defaultValues }: EditModalProps) => {
     // 기존에 이미지 있던거 이미지 지울 경우
     else if (image === null && defaultValues.menu_image) {
       try {
-        formData.append("menu_image", "");
+        formData.append("image", "");
         await MenuServiceWithImg.updateMenu(defaultValues.menu_id, formData);
         setButtonDisable(false);
       } catch (err) {
@@ -236,7 +241,8 @@ const EditMenuModal = ({ handleCloseModal, defaultValues }: EditModalProps) => {
           <S.ele>
             <S.SubTitle>메뉴 이미지</S.SubTitle>
             <S.OtherText>이미지 파일 (JPG,PNG)을 첨부해 주세요</S.OtherText>
-            <label htmlFor="file-upload">
+            {/* V3 수정 시 이미지 변경 미지원 — label→div로 교체해 파일 업로드 비활성화 */}
+            <div>
               <S.inputImg
                 id="file-upload"
                 type="file"
@@ -244,11 +250,13 @@ const EditMenuModal = ({ handleCloseModal, defaultValues }: EditModalProps) => {
                 onChange={handleFileChange}
                 multiple={false}
                 ref={fileInputRef}
+                style={{ display: "none" }}
               />
               {UploadImg ? (
                 <S.ImgContainer>
                   <S.Img src={UploadImg} alt="첨부한 이미지" />
-                  <button
+                  {/* V3 이미지 삭제 비활성화 — 수정 시 이미지 변경/삭제 미지원 */}
+                  {/* <button
                     type="button"
                     onMouseDown={(e) => {
                       e.preventDefault();
@@ -257,12 +265,12 @@ const EditMenuModal = ({ handleCloseModal, defaultValues }: EditModalProps) => {
                     onClick={handleRemoveImage}
                   >
                     <img src={IMAGE_CONSTANTS.CLOSE2} alt="" />
-                  </button>
+                  </button> */}
                 </S.ImgContainer>
               ) : (
                 <img src={preUploadImg} alt="기본 이미지" />
               )}
-            </label>
+            </div>
           </S.ele>
         </S.FormContentWrapper>
       </S.ModalBody>

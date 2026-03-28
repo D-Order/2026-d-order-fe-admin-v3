@@ -1,12 +1,11 @@
 import { useEffect, useRef, useState } from "react";
+// compressImage, MenuServiceWithImg 제거 — V3 세트메뉴 수정은 이미지 업로드 미지원
 import * as S from "./styled";
 import preUploadImg from "@assets/images/preUploadImg.png";
 import { IMAGE_CONSTANTS } from "@constants/imageConstants";
 import { HandleNumberInput } from "../_utils/HandleNumberInput";
 import MenuDropdown from "@pages/menu/_components/MenuDropdown";
 import { BoothMenuData, SetMenu } from "@pages/menu/Type/Menu_type";
-import MenuServiceWithImg from "@services/MenuServiceWithImg";
-import { compressImage } from "../_utils/ImageCompress";
 import MenuService from "@services/MenuService";
 
 interface EditSetMenuModalProps {
@@ -34,8 +33,8 @@ const EditSetMenuModal = ({
   const [desc, setDesc] = useState<string>("");
   const [price, setPrice] = useState<string>("");
   const [setItems, setSetItems] = useState<SetItem[]>([]);
+  // V3 세트메뉴 수정 API는 이미지 업로드 미지원 (삭제만 가능)
   const [uploadImg, setUploadImg] = useState<string | null>(null);
-  const [image, setImage] = useState<File | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
@@ -55,10 +54,12 @@ const EditSetMenuModal = ({
     setUploadImg(setMenu.set_image || null);
   }, [setMenu, boothMenuData]);
 
+  // V3 menu-list API는 세트 구성 아이템을 내려주지 않아 setItems가 항상 빈 배열로 시작함
+  // 수정 모달에서는 name, price만 있으면 버튼 활성화
   useEffect(() => {
-    if (name && price && setItems.length > 0) setButtonDisable(false);
+    if (name && price) setButtonDisable(false);
     else setButtonDisable(true);
-  }, [name, price, setItems]);
+  }, [name, price]);
 
   const getSelectedMenuIds = () => {
     return setItems
@@ -95,14 +96,6 @@ const EditSetMenuModal = ({
     setSetItems((prev) => prev.filter((_, i) => i !== idx));
   };
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    const url = URL.createObjectURL(file);
-    setUploadImg(url);
-    setImage(file);
-  };
-
   const handlePriceChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const raw = e.target.value || "";
     const digitsOnly = raw.replace(/\D/g, "");
@@ -124,64 +117,50 @@ const EditSetMenuModal = ({
       URL.revokeObjectURL(uploadImg);
     }
     setUploadImg(null);
-    setImage(null);
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
     }
   };
-  const MAX_FILE_SIZE = 10 * 1024 * 1024; // 업로드 이미지 크기 제한 10MB
-  const MIN_FILE_SIZE = 2.5 * 1024 * 1024;
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!name || !price || setItems.length === 0) {
+    if (!name || !price) {
       alert("모든 필수 항목을 채워주세요.");
       return;
     }
 
-    // 멀티파트로 업데이트 (이미지 포함)
-    const formData = new FormData();
-    formData.append("set_name", name);
-    formData.append("set_description", desc || "");
-    formData.append("set_price", String(Number(price)));
-    formData.append(
-      "menu_items",
-      JSON.stringify(
-        setItems
-          .filter((i) => i.menuId !== null)
-          .map((i) => ({ menu_id: i.menuId as number, quantity: i.amount }))
-      )
-    );
+    // V3: JSON body, 이미지 수정 불가 (삭제만 image_delete: true 로 가능)
+    const payload: {
+      name: string;
+      description: string;
+      price: number;
+      set_items?: { menu_id: number; quantity: number }[];
+      image_delete?: boolean;
+    } = {
+      name,
+      description: desc || "",
+      price: Number(price),
+    };
 
-    if (image) {
-      if (image.size > MAX_FILE_SIZE) {
-        alert("이미지 용량이 10mb 를 초과하였습니다!");
-        return;
-      }
-      const fileToUpload =
-        image.size <= MIN_FILE_SIZE ? image : await compressImage(image);
-      formData.append("set_image", fileToUpload);
+    // set_items 미포함 시 기존 구성 유지, 포함 시 전체 대체 (한 개 이상 필수)
+    const validItems = setItems
+      .filter((i) => i.menuId !== null)
+      .map((i) => ({ menu_id: i.menuId as number, quantity: i.amount }));
+    if (validItems.length > 0) {
+      payload.set_items = validItems;
     }
 
-    if (image === null) {
-      try {
-        formData.append("set_image", "");
-        await MenuService.editSetMenu(setMenu.set_menu_id, formData);
-        setButtonDisable(false);
-        onSuccess();
-      } catch (err) {
-        console.log(err);
-      } finally {
-        handleCloseModal();
-      }
-    } else {
-      try {
-        await MenuServiceWithImg.updateSetMenu(setMenu.set_menu_id, formData);
-        onSuccess();
-      } catch (error) {
-        console.log(error);
-      } finally {
-        handleCloseModal();
-      }
+    // 이미지 삭제: uploadImg가 null이면 명시적으로 삭제한 것
+    if (uploadImg === null) {
+      payload.image_delete = true;
+    }
+
+    try {
+      await MenuService.editSetMenu(setMenu.set_menu_id, payload);
+      onSuccess();
+    } catch (err) {
+      console.log(err);
+    } finally {
+      handleCloseModal();
     }
   };
 
@@ -257,35 +236,34 @@ const EditSetMenuModal = ({
             ))}
           </S.ele>
           <S.ele>
+            {/* V3 API 이미지 업로드 미지원 — 기존 이미지 삭제만 가능 */}
             <S.SubTitle>세트 이미지</S.SubTitle>
-            <S.OtherText>이미지 파일 (JPG,PNG)을 첨부해 주세요</S.OtherText>
-            <label htmlFor="set-file-upload">
-              <S.inputImg
-                id="set-file-upload"
-                type="file"
-                accept=".jpg,.png,.jpeg"
-                onChange={handleFileChange}
-                multiple={false}
-                ref={fileInputRef}
-              />
-              {uploadImg ? (
-                <S.ImgContainer>
-                  <S.Img src={uploadImg} alt="첨부한 이미지" />
-                  <button
-                    type="button"
-                    onMouseDown={(e) => {
-                      e.preventDefault();
-                      e.stopPropagation();
-                    }}
-                    onClick={handleRemoveImage}
-                  >
-                    <img src={IMAGE_CONSTANTS.CLOSE2} alt="" />
-                  </button>
-                </S.ImgContainer>
-              ) : (
-                <img src={preUploadImg} alt="기존 이미지" />
-              )}
-            </label>
+            <S.inputImg
+              id="set-file-upload"
+              type="file"
+              accept=".jpg,.png,.jpeg"
+              multiple={false}
+              ref={fileInputRef}
+              style={{ display: "none" }}
+            />
+            {uploadImg ? (
+              <S.ImgContainer>
+                <S.Img src={uploadImg} alt="첨부한 이미지" />
+                {/* V3 이미지 삭제 비활성화 — 수정 시 이미지 변경/삭제 미지원 */}
+                {/* <button
+                  type="button"
+                  onMouseDown={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                  }}
+                  onClick={handleRemoveImage}
+                >
+                  <img src={IMAGE_CONSTANTS.CLOSE2} alt="" />
+                </button> */}
+              </S.ImgContainer>
+            ) : (
+              <img src={preUploadImg} alt="기존 이미지" />
+            )}
           </S.ele>
         </S.FormContentWrapper>
       </S.ModalBody>

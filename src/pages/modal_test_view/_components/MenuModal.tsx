@@ -175,16 +175,17 @@ const MenuModal = ({ handleCloseModal, boothMenuData }: MenuModalProps) => {
         .filter((it) => it.menuId !== null)
         .map((it) => ({ menu_id: it.menuId as number, quantity: it.amount }));
 
+      // V3 필드명: set_name→name, set_description→description, set_price→price, set_image→image
       const formData = new FormData();
-      formData.append('set_name', name);
-      formData.append('set_description', desc || '');
-      formData.append('set_price', String(Number(price)));
-      formData.append('menu_items', JSON.stringify(menu_items));
+      formData.append('name', name);
+      formData.append('description', desc || '');
+      formData.append('price', String(Number(price)));
+      formData.append('set_items', JSON.stringify(menu_items));
 
       if (image) {
         const fileToUpload =
           image.size <= MIN_FILE_SIZE ? image : await compressImage(image);
-        formData.append('set_image', fileToUpload);
+        formData.append('image', fileToUpload);
       }
 
       try {
