@@ -11,19 +11,16 @@ import { instance } from "@services/instance";
 
 import {
   getTableDetail,
-  type TableDetailData as APITableDetail,
+  type TableDetailData,
 } from "../../_apis/getTableDetail";
 import { resetTable as resetTableAPI } from "../../_apis/resetTable";
-import {
-  updateOrderQuantity,
-  type CancelBatchItem,
-} from "../../_apis/updateOrderQuantity";
+import { cancelOrderItem } from "../../_apis/cancelOrderItem"; // ⬅️ 새 API 반영
 
 import { useMemo, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 
 interface Props {
-  data: APITableDetail;
+  data: TableDetailData;
   onBack?: () => void;
 }
 
@@ -49,113 +46,33 @@ const toImageUrl = (p?: string | null): string | null => {
   return `${API_ORIGIN}/${val}`;
 };
 
-// ── 레거시 화면 타입(필요한 보조 필드 추가) ───────────────────────────
-type LegacyOrder = {
-  id?: number;
-  order_id?: number;
-  menu_name: string;
-  menu_price: number;
-  menu_num: number;
-  menu_image: string | null;
-  order_status?: string;
-
-  // 새 API 대응
-  type?: "menu" | "set" | "setmenu" | string;
-  ids?: number[];
-};
-
-type LegacyDetail = {
-  table_num: number;
-  table_price: number;
-  table_status: string;
-  created_at: string | null;
-  orders: LegacyOrder[];
-};
-
-const normalizeDetail = (api: APITableDetail): LegacyDetail => ({
-  table_num: api.table_num,
-  table_price: api.table_amount ?? 0,
-  table_status: api.table_status ?? "unknown",
-  created_at: api.created_at ?? null,
-  orders: (api.orders ?? []).map((o: any) => {
-    const typeRaw =
-      typeof o?.type === "string" ? o.type.toLowerCase() : undefined;
-
-    const idsFallback = Array.isArray(o?.order_item_ids)
-      ? o.order_item_ids
-      : Array.isArray(o?.order_menu_ids)
-      ? o.order_menu_ids
-      : Array.isArray(o?.order_setmenu_ids)
-      ? o.order_setmenu_ids
-      : undefined;
-
-    return {
-      id:
-        typeof o?.order_item_id === "number"
-          ? o.order_item_id
-          : typeof o?.ordermenu_id === "number"
-          ? o.ordermenu_id
-          : typeof o?.order_menu_id === "number"
-          ? o.order_menu_id
-          : typeof o?.ordersetmenu_id === "number"
-          ? o.ordersetmenu_id
-          : typeof o?.order_setmenu_id === "number"
-          ? o.order_setmenu_id
-          : undefined,
-      order_id: typeof o?.order_id === "number" ? o.order_id : undefined,
-      menu_name:
-        typeof o?.menu_name === "string" && o.menu_name.trim() !== ""
-          ? o.menu_name
-          : typeof o?.set_name === "string" && o.set_name.trim() !== ""
-          ? o.set_name
-          : "(이름 없음)",
-      menu_price:
-        typeof o?.price === "number"
-          ? o.price
-          : typeof o?.fixed_price === "number"
-          ? o.fixed_price
-          : typeof o?.menu_price === "number"
-          ? o.menu_price
-          : typeof o?.set_price === "number"
-          ? o.set_price
-          : 0,
-      menu_num:
-        typeof o?.quantity === "number"
-          ? o.quantity
-          : typeof o?.menu_num === "number"
-          ? o.menu_num
-          : 1,
-      menu_image: o?.menu_image ?? o?.set_image ?? null,
-      order_status: o?.order_status ?? o?.status,
-
-      // 새 API 보조 정보
-      type: typeRaw,
-      ids: Array.isArray(idsFallback) ? idsFallback : undefined,
-    } as LegacyOrder;
-  }),
-});
-
 const TableDetail: React.FC<Props> = ({ data, onBack }) => {
-  const initial = useMemo(() => normalizeDetail(data), [data]);
   const navigate = useNavigate();
 
+  // 선택한 메뉴의 정보 (취소를 위해 id 필수)
   const [selectedMenu, setSelectedMenu] = useState<{
+    id: number;
     name: string;
     quantity: number;
   } | null>(null);
+
   const [confirmInfo, setConfirmInfo] = useState<{
+    id: number;
     name: string;
-    quantity: number;
+    cancelQuantity: number;
+    maxQuantity: number;
   } | null>(null);
+
   const [showResetModal, setShowResetModal] = useState(false);
-  const [tableDetailData, setTableDetailData] = useState<LegacyDetail>(initial);
-  const [showErrorModal, setShowErrorModal] = useState(false);
-  // ✅ 원가 합계 계산 (단가 * 수량)
+  const [tableDetailData, setTableDetailData] = useState<TableDetailData>(data);
+  const [errorModalMsg, setErrorModalMsg] = useState<string | null>(null);
+
+  // 원가 합계 계산 (단가 * 수량)
   const originalTotal = useMemo(() => {
     try {
       return (tableDetailData.orders ?? []).reduce((sum, o) => {
-        const unit = Number(o.menu_price) || 0;
-        const qty = Number(o.menu_num) || 0;
+        const unit = Number(o.price) || 0;
+        const qty = Number(o.quantity) || 0;
         return sum + unit * qty;
       }, 0);
     } catch {
@@ -163,17 +80,17 @@ const TableDetail: React.FC<Props> = ({ data, onBack }) => {
     }
   }, [tableDetailData.orders]);
 
-  // ✅ 부동소수 오차 방지를 위해 반올림 비교
+  // 부동소수 오차 방지를 위해 반올림 비교
   const hasDiscount = useMemo(() => {
     return (
-      Math.round(originalTotal) !== Math.round(tableDetailData.table_price ?? 0)
+      Math.round(originalTotal) !== Math.round(tableDetailData.table_amount ?? 0)
     );
-  }, [originalTotal, tableDetailData.table_price]);
+  }, [originalTotal, tableDetailData.table_amount]);
 
   const refetchTableDetail = useCallback(async () => {
     try {
       const response = await getTableDetail(tableDetailData.table_num);
-      setTableDetailData(normalizeDetail(response.data));
+      setTableDetailData(response.data);
     } catch {
       // noop
     }
@@ -201,7 +118,6 @@ const TableDetail: React.FC<Props> = ({ data, onBack }) => {
 
         <S.DivideLine />
 
-        {/* ✅ 총액/할인 표시: 다를 때만 원가 + 안내문 + 총액 */}
         <S.TotalPrice>
           <p>💸총 주문금액</p>
           {hasDiscount && (
@@ -212,7 +128,7 @@ const TableDetail: React.FC<Props> = ({ data, onBack }) => {
             </>
           )}
           <p className="total">
-            {tableDetailData.table_price.toLocaleString()}원
+            {tableDetailData.table_amount.toLocaleString()}원
           </p>
         </S.TotalPrice>
 
@@ -221,7 +137,7 @@ const TableDetail: React.FC<Props> = ({ data, onBack }) => {
             <EmptyOrder />
           ) : (
             tableDetailData.orders.map((order, idx) => (
-              <div key={order.id ?? `${order.order_id ?? "noorder"}-${idx}`}>
+              <div key={order.id ?? `no-id-${idx}`}>
                 <S.ItemWrapper>
                   <S.ContentContainer>
                     <S.ImageWrapper>
@@ -237,17 +153,23 @@ const TableDetail: React.FC<Props> = ({ data, onBack }) => {
                     <S.TitleWrapper>
                       <p className="menuName">{order.menu_name}</p>
                       <S.GrayText>
-                        <p>수량 : {order.menu_num}</p>
-                        <p>가격 : {order.menu_price.toLocaleString()}원</p>
+                        <p>수량 : {order.quantity}</p>
+                        <p>가격 : {order.price.toLocaleString()}원</p>
                       </S.GrayText>
                     </S.TitleWrapper>
                   </S.ContentContainer>
                   <S.ButtonWrapper>
                     <S.CancleButton
                       onClick={() => {
+                        // 🚨 백엔드에서 id를 안 내려줬을 때 방어 코드
+                        if (!order.id) {
+                          alert("주문 항목 ID가 없습니다. (백엔드 명세 확인 필요)");
+                          return;
+                        }
                         setSelectedMenu({
+                          id: order.id,
                           name: order.menu_name,
-                          quantity: order.menu_num,
+                          quantity: order.quantity,
                         });
                       }}
                     >
@@ -260,137 +182,41 @@ const TableDetail: React.FC<Props> = ({ data, onBack }) => {
               </div>
             ))
           )}
-          
         </S.MenuList>
       </S.DetailWrapper>
 
-      {/* 수량 선택 모달 — 시작값 0, 최대는 라인 수량 */}
+      {/* 수량 선택 모달 */}
       {selectedMenu && (
         <CancelMenuModal
           menuName={selectedMenu.name}
-          initialQuantity={selectedMenu.quantity} // ✅ 상한만 전달(시작값은 모달 내부에서 0)
+          initialQuantity={selectedMenu.quantity}
           onClose={() => setSelectedMenu(null)}
           onConfirmRequest={(q) => {
             setSelectedMenu(null);
-            setConfirmInfo({ name: selectedMenu.name, quantity: q });
+            setConfirmInfo({
+              id: selectedMenu.id,
+              name: selectedMenu.name,
+              maxQuantity: selectedMenu.quantity,
+              cancelQuantity: q,
+            });
           }}
         />
       )}
 
-      {/* 확인 모달 - 새 API로 취소 */}
+      {/* 확인 모달 */}
       {confirmInfo && (
         <CancelConfirmModal
+          cancelCount={confirmInfo.cancelQuantity}
+          totalCountBefore={confirmInfo.maxQuantity}
           onConfirm={async () => {
             try {
-              const order = tableDetailData.orders.find(
-                (o) => o.menu_name === confirmInfo.name
-              );
-
-              if (!order) {
-                alert("해당 주문을 찾을 수 없습니다.");
-                setConfirmInfo(null);
-                return;
-              }
-
-              // type 정규화: 'setmenu' → 'set', 그 외는 'menu'
-              const rawType = (order.type ?? "").toString().toLowerCase();
-              const kind: "menu" | "set" =
-                rawType === "set" || rawType === "setmenu" ? "set" : "menu";
-
-              const wanted = Math.min(
-                confirmInfo.quantity,
-                Math.max(1, order.menu_num)
-              );
-              console.log(
-                "[Confirm] 사용자가 최종 확인 - 취소 개수(wanted):",
-                wanted,
-                "/ 기존 라인 수량:",
-                order.menu_num,
-                "/ 정규화 type:",
-                kind,
-                "(raw:",
-                rawType,
-                ")"
-              );
-
-              let batch: CancelBatchItem;
-
-              if (Array.isArray(order.ids) && order.ids.length > 0) {
-                const ids = order.ids.slice(0, wanted);
-                batch = { type: kind, order_item_ids: ids, quantity: wanted };
-              } else if (order.id) {
-                batch = {
-                  type: kind,
-                  order_item_ids: [order.id],
-                  quantity: wanted,
-                };
-              } else {
-                alert("주문 항목 ID가 없어 취소 요청을 보낼 수 없습니다.");
-                setConfirmInfo(null);
-                return;
-              }
-
-              const res = await updateOrderQuantity([batch]);
-
-              if (res?.status === "error" && res?.code === 400) {
-                // not_enough_cancellable_due_to_served_or_status 등 에러를 모달로 안내
-                setShowErrorModal(true);
-                setConfirmInfo(null);
-                return;
-              }
-
-              if (res?.status === "success") {
-                const updated = res?.data?.updated_items ?? [];
-
-                const nameForMatch = order.menu_name;
-                const restList = updated
-                  .filter(
-                    (u: any) => (u.menu_name ?? u.set_name) === nameForMatch
-                  )
-                  .map((u: any) =>
-                    typeof u.rest_quantity === "number"
-                      ? u.rest_quantity
-                      : undefined
-                  )
-                  .filter(
-                    (n: number | undefined) => typeof n === "number"
-                  ) as number[];
-
-                if (restList.length > 0) {
-                  const totalRest = restList.reduce((acc, n) => acc + n, 0);
-                  console.log(
-                    `[Confirm] "${nameForMatch}" 취소 후 남은 총 수량(서버 기준 합산):`,
-                    totalRest
-                  );
-                } else {
-                  const expectedLeft = Math.max(
-                    0,
-                    (order.menu_num ?? 0) - wanted
-                  );
-                  console.log(
-                    `[Confirm] "${nameForMatch}" 취소 후 남은 수량(예상):`,
-                    expectedLeft,
-                    "(서버 rest_quantity 미제공)"
-                  );
-                }
-              } else {
-                console.log("[Confirm] 취소 실패 응답:", res);
-              }
-
+              // ⬅️ 새 API 요청 (단일 항목 ID, 취소 수량)
+              await cancelOrderItem(confirmInfo.id, confirmInfo.cancelQuantity);
               setConfirmInfo(null);
-              await refetchTableDetail();
+              await refetchTableDetail(); // 성공 시 데이터 갱신
             } catch (e: any) {
-              console.log("[Confirm] 취소 요청 중 오류:", e);
-              // axios 에러면 서버 응답 메시지도 콘솔에 남겨서 디버깅에 도움
-              const serverMessage =
-                e?.response?.data?.message ||
-                e?.message ||
-                "주문 취소 중 오류가 발생했습니다.";
-              console.log("[Confirm] 서버 메시지:", serverMessage);
-
-              // ❗️여기서 에러 모달 노출
-              setShowErrorModal(true);
               setConfirmInfo(null);
+              setErrorModalMsg(e.message || "주문 취소 중 오류가 발생했습니다.");
             }
           }}
           onCancel={() => {
@@ -404,21 +230,24 @@ const TableDetail: React.FC<Props> = ({ data, onBack }) => {
         <ResetModal
           resetTable={async () => {
             try {
-              await resetTableAPI(tableDetailData.table_num);
+              await resetTableAPI([tableDetailData.table_num]); 
               setShowResetModal(false);
-              await refetchTableDetail();
-            } catch {
+              await refetchTableDetail(); 
+            } catch (e: any) {
+              console.error("테이블 초기화 실패:", e);
+              alert(e.message || "테이블 초기화에 실패했습니다.");
               setShowResetModal(false);
             }
           }}
           onCancel={() => setShowResetModal(false)}
         />
       )}
-      {showErrorModal && (
+
+      {/* 에러 모달 */}
+      {errorModalMsg && (
         <CancelErrorModal
-          onClose={() => setShowErrorModal(false)}
-          // 필요 시 서버 메시지를 보조 텍스트로 붙이고 싶다면 아래 주석 해제:
-          // message="요청 수량 중 일부가 이미 서빙되어 취소할 수 없습니다."
+          message={errorModalMsg}
+          onClose={() => setErrorModalMsg(null)}
         />
       )}
     </>

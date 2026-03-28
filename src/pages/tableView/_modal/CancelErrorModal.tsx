@@ -3,21 +3,21 @@ import styled, { css } from "styled-components";
 
 interface Props {
     onClose: () => void;
-    /** 필요 시 다른 메시지를 넣고 싶을 때 사용 (기본값 고정 문구) */
-    message?: string;
+    message?: string; // 부모 컴포넌트에서 받은 에러 메시지 렌더링
 }
 
-const CancelErrorModal: React.FC<Props> = ({ onClose}) => {
+const CancelErrorModal: React.FC<Props> = ({ onClose, message }) => {
     return (
         <Overlay>
         <Modal>
             <TextWrapper>
-                <p>해당 주문은 취소할 수 없습니다.</p>
-                {/* {message && <p className="grayText">{message}</p>} */}
+            <p>주문 취소에 실패했습니다.</p>
+            {/* 전달받은 에러 메시지가 있으면 노출합니다. */}
+            {message && <p className="grayText">{message}</p>}
             </TextWrapper>
             <ButtonRow>
             <ButtonSingle onClick={onClose}>
-                <button >확인</button>
+                <button>확인</button>
             </ButtonSingle>
             </ButtonRow>
         </Modal>

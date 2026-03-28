@@ -3,6 +3,7 @@ import { instance } from "@services/instance";
 
 // ── 1. 서버 응답 원형 (새 API 명세 기준) ──
 export interface RawOrderItem {
+  id: number;
   name: string;
   quantity: number;
   fixed_price: number;
@@ -22,16 +23,12 @@ export interface RawResponse {
 
 // ── 2. UI 친화 타입 (기존 컴포넌트 호환 유지) ──
 export type OrderDetail = {
+  id: number;
   menu_name: string;
   quantity: number;
   price: number;
   created_at: string;
-  // 기존 UI(취소 모달 등)에서 에러가 나지 않도록 옵셔널로 남겨둠
   menu_image?: string | null;
-  order_id?: number;
-  order_item_id?: number;
-  type?: string;
-  order_item_ids?: number[];
 };
 
 export type TableDetailData = {
@@ -54,6 +51,7 @@ const normalize = (raw: RawTableDetail): TableDetailData => {
 
   const orders: OrderDetail[] = Array.isArray(raw.order_items)
     ? raw.order_items.map((o) => ({
+        id: o.id,
         menu_name: o.name,
         quantity: o.quantity,
         price: o.fixed_price,

@@ -1,12 +1,11 @@
 import { useState } from "react";
 import styled, { css } from "styled-components";
-import CancelConfirmModal from "./CancelConfirmModal";
 
 interface Props {
     menuName: string;
     initialQuantity: number;
     onClose: () => void;
-    onConfirmRequest: (quantity: number) => void; // ✅ 상위에서 확인 요청 처리
+    onConfirmRequest: (quantity: number) => void;
 }
 
 const CancelMenuModal: React.FC<Props> = ({
@@ -15,8 +14,7 @@ const CancelMenuModal: React.FC<Props> = ({
     onClose,
     onConfirmRequest,
     }) => {
-    const [quantity, setQuantity] = useState(0)
-    const [showConfirmModal, setShowConfirmModal] = useState(false);
+    const [quantity, setQuantity] = useState(0);
 
     return (
         <Overlay>
@@ -24,7 +22,6 @@ const CancelMenuModal: React.FC<Props> = ({
             <Header>
             <p>주문 취소할 메뉴 수량을 선택해 주세요</p>
             </Header>
-            {/* <Line /> */}
             <MainWrapper>
             <Box>
                 <p className="grayText">메뉴</p>
@@ -62,6 +59,7 @@ const CancelMenuModal: React.FC<Props> = ({
             <ButtonContainer2>
                 <button
                 onClick={() => {
+                    // 상위로 수량만 넘김, Confirm Modal 띄우는 건 상위의 역할
                     onClose();
                     onConfirmRequest(quantity);
                 }}
@@ -71,16 +69,6 @@ const CancelMenuModal: React.FC<Props> = ({
                 </button>
             </ButtonContainer2>
             </ButtonRow>
-
-            {showConfirmModal && (
-            <CancelConfirmModal
-                onConfirm={() => {
-                setShowConfirmModal(false);
-                onClose();
-                }}
-                onCancel={() => setShowConfirmModal(false)}
-            />
-            )}
         </ModalWrapper>
         </Overlay>
     );

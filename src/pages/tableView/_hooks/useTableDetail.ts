@@ -4,11 +4,7 @@ import {
   getTableDetail,
   type TableDetailData,
 } from "../_apis/getTableDetail";
-import {
-  updateOrderQuantity as apiCancelItems,
-  type CancelBatchItem,
-  type CancelOrderResponse,
-} from "../_apis/updateOrderQuantity";
+import { cancelOrderItem } from "../_apis/cancelOrderItem"; // 변경된 API import
 
 type Status = "idle" | "loading" | "success" | "error";
 
@@ -38,18 +34,19 @@ export const useTableDetail = (tableNum: number) => {
     if (Number.isFinite(tableNum)) fetchDetail();
   }, [fetchDetail, tableNum]);
 
-  const cancelItems = useCallback(
-    async (batches: CancelBatchItem[]): Promise<CancelOrderResponse> => {
-      const res = await apiCancelItems(batches);
-
-      if (res?.status === "success" || res?.message === "success") {
-        // 새 명세에서는 응답에 개별 아이템 ID가 없으므로,
-        // 로컬 데이터를 직접 조작하기보다는 재조회(refetch)를 통해
-        // 서버의 최신 데이터를 동기화하는 것이 가장 안전합니다.
-        await fetchDetail();
+  // 새로운 취소 로직
+  const handleCancelItem = useCallback(
+    async (orderItemId: number, cancelQuantity: number) => {
+      try {
+        const res = await cancelOrderItem(orderItemId, cancelQuantity);
+        
+        // 취소 성공 후 서버에서 최신 상세 데이터를 다시 불러와 동기화
+        await fetchDetail(); 
+        return res;
+      } catch (error) {
+        console.error("주문 취소 실패:", error);
+        throw error; // UI(모달 등)에서 에러 처리를 할 수 있도록 던짐
       }
-
-      return res;
     },
     [fetchDetail]
   );
@@ -62,6 +59,6 @@ export const useTableDetail = (tableNum: number) => {
     errorMsg,
     hasOrders,
     refetch: fetchDetail,
-    cancelItems,
+    cancelItem: handleCancelItem, // 이름 변경 (cancelItems -> cancelItem)
   };
 };
