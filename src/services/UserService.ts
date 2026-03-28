@@ -1,3 +1,4 @@
+import { isAxiosError } from 'axios';
 import { instance } from './instance';
 
 export interface SignupRequest {
@@ -88,8 +89,11 @@ export interface RefreshRequestV3 {
   refresh: string;
 }
 
+/** refresh 200: JSON에 access 없이 message/data만 오고 쿠키로 갱신되는 경우 허용 */
 export interface RefreshResponseV3 {
-  access: string;
+  message?: string;
+  data?: { username?: string; booth_id?: number };
+  access?: string;
   refresh?: string;
 }
 
@@ -145,17 +149,50 @@ const UserService = {
     return response.data;
   },
 
-  /** v3: POST /api/v3/django/auth/refresh/ - Access Token 재발급. refresh는 쿠키로만 전달(인자 없으면 body 비움, withCredentials로 쿠키 전송) */
+  /** v3: POST /api/v3/django/auth/refresh/ - Access 재발급(쿠키) 또는 유효 시 message만 */
   refreshTokenV3: async (refreshToken?: string): Promise<RefreshResponseV3> => {
     const body = refreshToken != null ? { refresh: refreshToken } satisfies RefreshRequestV3 : {};
-    const response = await instance.post<RefreshResponseV3>(
-      '/api/v3/django/auth/refresh/',
-      body,
-    );
-    if (!response.data?.access) {
+    console.info('[V3 Refresh] POST /api/v3/django/auth/refresh/ 토큰 재발급 시도');
+    try {
+      const response = await instance.post<RefreshResponseV3>(
+        '/api/v3/django/auth/refresh/',
+        body,
+      );
+      const d = response.data;
+      if (typeof d?.access === 'string' && d.access) {
+        localStorage.setItem('accessToken', d.access);
+      }
+      if (
+        d &&
+        (typeof d.message === 'string' ||
+          d.data != null ||
+          (typeof d.access === 'string' && d.access.length > 0))
+      ) {
+        console.info('[V3 Refresh] 성공', {
+          message: d.message,
+          data: d.data,
+          accessInBody: Boolean(
+            typeof d.access === 'string' && d.access.length > 0,
+          ),
+        });
+        return d;
+      }
+      console.warn(
+        '[V3 Refresh] 응답 형식 이상 (message/data/access 없음)',
+        d,
+      );
       throw new Error('토큰 재발급 응답이 올바르지 않습니다.');
+    } catch (err) {
+      if (isAxiosError(err)) {
+        console.warn('[V3 Refresh] 실패', {
+          status: err.response?.status,
+          data: err.response?.data,
+        });
+      } else {
+        console.warn('[V3 Refresh] 실패', err);
+      }
+      throw err;
     }
-    return response.data;
   },
 };
 
