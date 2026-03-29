@@ -87,7 +87,7 @@ interface CreateMenuResponse {
 }
 
 const MenuService = {
-  // 메뉴 리스트 조회 (v3 운영자 메뉴 목록 API)
+  // 메뉴 리스트 조회
   getMenuList: async (): Promise<BoothMenuData> => {
     try {
       const response = await instance.get<MenuListResponseV3>(
@@ -112,7 +112,7 @@ const MenuService = {
     }
   },
 
-  // 메뉴 수정 — PUT→PATCH, v2→v3
+  // 메뉴 수정
   updateMenu: async (id: number, formData: FormData): Promise<Menu> => {
     try {
       const response: AxiosResponse<{ data: Menu }> = await instance.patch(
@@ -134,7 +134,7 @@ const MenuService = {
     }
   },
 
-  // 세트메뉴 생성 — v2→v3, 필드명: set_name→name, set_description→description, set_price→price
+  // 세트메뉴 생성
   createSettMenu: async (payload: {
     name: string;
     description: string;
@@ -148,7 +148,7 @@ const MenuService = {
     }
   },
 
-  // 세트메뉴 수정 — v3, JSON body (FormData 아님)
+  // 세트메뉴 수정
   // 이미지 수정 불가, 삭제만 image_delete: true 로 가능
   editSetMenu: async (
     set_menu_id: number,
@@ -170,7 +170,7 @@ const MenuService = {
     }
   },
 
-  // 세트메뉴 삭제 — v2→v3
+  // 세트메뉴 삭제
   deleteSetMenu: async (id: number): Promise<void> => {
     try {
       await instance.delete(`/api/v3/django/booth/sets/${id}/`);
