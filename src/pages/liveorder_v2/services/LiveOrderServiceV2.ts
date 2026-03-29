@@ -1,4 +1,4 @@
-import { instance } from "../../../services/instance";
+import { instanceV2 } from "../../../services/instance";
 import { OrderStatus } from "../types";
 
 /**
@@ -7,7 +7,7 @@ import { OrderStatus } from "../types";
  */
 export const getMenuNames = async (): Promise<string[]> => {
   try {
-    const response = await instance.get<{ data: string[] }>(
+    const response = await instanceV2.get<{ data: string[] }>(
       "api/v2/booth/menu-names/"
     );
     return response.data.data;
@@ -25,7 +25,7 @@ export const updateOrderToCooked = async (
   ordermenuId: number
 ): Promise<void> => {
   const body = { type: "menu", id: ordermenuId };
-  await instance.post("api/v2/booth/kitchen/orders/", body);
+  await instanceV2.post("api/v2/booth/kitchen/orders/", body);
 };
 
 /**
@@ -36,7 +36,7 @@ export const updateOrderToServed = async (
   ordermenuId: number
 ): Promise<void> => {
   const body = { type: "menu", id: ordermenuId };
-  await instance.post("api/v2/booth/serving/orders/", body);
+  await instanceV2.post("api/v2/booth/serving/orders/", body);
 };
 
 /**
@@ -49,5 +49,5 @@ export const revertOrderStatus = async (
   targetStatus: OrderStatus
 ): Promise<void> => {
   const body = { id: ordermenuId, target_status: targetStatus };
-  await instance.patch("api/v2/booth/revert/orders/", body);
+  await instanceV2.patch("api/v2/booth/revert/orders/", body);
 };

@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { AxiosError } from "axios";
-import { instance } from "@services/instance";
+import { instanceV2 } from "@services/instance";
 import { BellPlayer } from "../BellPlayer";
 
 interface Notification {
@@ -25,7 +25,7 @@ export const useStaffCall = () => {
 
     const fetchInitialNotifications = async () => {
       try {
-        const response = await instance.get<{
+        const response = await instanceV2.get<{
           status: string;
           data: ApiCallStaff[];
         }>("/api/v2/booth/staff-calls/");

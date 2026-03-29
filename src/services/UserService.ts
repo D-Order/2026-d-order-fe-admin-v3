@@ -1,5 +1,5 @@
 import { isAxiosError } from 'axios';
-import { instance } from './instance';
+import { instance, instanceV2 } from './instance';
 
 export interface SignupRequest {
   username: string;
@@ -99,7 +99,7 @@ export interface RefreshResponseV3 {
 
 const UserService = {
   postSignup: async (data: SignupRequest) => {
-    const response = await instance.post('/api/v2/manager/signup/', data);
+    const response = await instanceV2.post('/api/v2/manager/signup/', data);
     return response.data;
   },
 
@@ -120,7 +120,7 @@ const UserService = {
 
   login: async (data: LoginRequest): Promise<LoginResponse> => {
     try {
-      const response = await instance.post('/api/v2/manager/auth/', data);
+      const response = await instanceV2.post('/api/v2/manager/auth/', data);
 
       if (!response.data?.token?.access) {
         throw new Error('로그인 응답이 올바르지 않습니다.');

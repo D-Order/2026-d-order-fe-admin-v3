@@ -1,3 +1,32 @@
+# ── 프로덕션 배포 (main 브랜치) ─────────────────────────────────────────────
+[context.production]
+[[context.production.redirects]]
+  from = "/api/v3/*"
+  to = "https://prod.dorder-api.shop/api/v3/:splat"
+  status = 200
+  force = true
+
+[[context.production.redirects]]
+  from = "/api/v2/*"
+  to = "https://prod.dorder-api.shop/api/v2/:splat"
+  status = 200
+  force = true
+
+# ── 브랜치/PR 미리보기 (develop 등) ─────────────────────────────────────────
+[context.deploy-preview]
+[[context.deploy-preview.redirects]]
+  from = "/api/v3/*"
+  to = "https://dev.dorder-api.shop/api/v3/:splat"
+  status = 200
+  force = true
+
+[[context.deploy-preview.redirects]]
+  from = "/api/v2/*"
+  to = "https://dev.dorder-api.shop/api/v2/:splat"
+  status = 200
+  force = true
+
+# ── SPA 라우팅 (공통) ────────────────────────────────────────────────────────
 [[redirects]]
   from = "/*"
   to = "/index.html"
