@@ -13,7 +13,7 @@ const Header = () => {
   const [modalOpen, setModalOpen] = useState(false);
 
   const { boothName, totalRevenues } = useBoothRevenue();
-  const { liveNotice, showLiveNotice, notifications, hasUnread, markAsRead } =
+  const { liveNotice, showLiveNotice, hasUnread, markAsRead } =
     useStaffCall();
 
   const animatedRevenues = useAnimatedNumber(totalRevenues);
@@ -49,7 +49,6 @@ const Header = () => {
           onClick={handleBellClick}
           modalOpen={modalOpen}
           onCloseModal={() => setModalOpen(false)}
-          notifications={notifications}
         />
 
         <S.ReloadButton onClick={handleReload} disabled={isReloading}>
