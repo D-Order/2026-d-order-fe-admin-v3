@@ -8,7 +8,9 @@ import BoothService from '@services/BoothService';
 const WS_PATH = '/ws/django/booth/sales/';
 
 function getSalesWsUrl(): string {
-  const base = (import.meta.env.VITE_BASE_URL ?? '')
+  // VITE_WS_URL: WebSocket 전용 환경변수 (wss:// 또는 ws://)
+  // VITE_BASE_URL은 HTTP API용이므로 WS URL 생성에는 VITE_WS_URL 사용
+  const base = (import.meta.env.VITE_WS_URL ?? '')
     .toString()
     .replace(/\/+$/, '');
   if (!base) return '';
