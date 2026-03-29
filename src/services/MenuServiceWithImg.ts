@@ -1,4 +1,4 @@
-import { instatnceWithImg } from "./instance";
+import { instatnceWithImg } from './instance';
 
 export interface MenuRegistResponse {
   status: string;
@@ -15,85 +15,85 @@ export interface MenuRegistResponse {
   } | null;
 }
 const MenuServiceWithImg = {
-  // 메뉴 등록 — v3 유지
+  // 메뉴 등록
   createMenu: async (formData: FormData): Promise<MenuRegistResponse> => {
     try {
       const response = await instatnceWithImg.post<MenuRegistResponse>(
-        "/api/v3/django/booth/menus/",
-        formData
+        '/api/v3/django/booth/menus/',
+        formData,
       );
       return response.data;
     } catch (error) {
       return {
-        status: "error",
-        message: "메뉴 등록에 실패했습니다.",
+        status: 'error',
+        message: '메뉴 등록에 실패했습니다.',
         code: 500,
         data: null,
       };
     }
   },
 
-  // 메뉴 수정 — v2→v3
+  // 메뉴 수정
   updateMenu: async (
     menu_id: number,
-    formData: FormData
+    formData: FormData,
   ): Promise<MenuRegistResponse> => {
     try {
       const response = await instatnceWithImg.patch<MenuRegistResponse>(
         `/api/v3/django/booth/menus/${menu_id}/`,
-        formData
+        formData,
       );
       return response.data;
     } catch (error) {
       return {
-        status: "error",
-        message: "메뉴 수정에 실패했습니다.",
+        status: 'error',
+        message: '메뉴 수정에 실패했습니다.',
         code: 500,
         data: null,
       };
     }
   },
 
-  // 세트메뉴 등록 — v2→v3
+  // 세트메뉴 등록
   createSetMenu: async (formData: FormData): Promise<MenuRegistResponse> => {
     try {
       const response = await instatnceWithImg.post<MenuRegistResponse>(
-        "/api/v3/django/booth/sets/",
-        formData
+        '/api/v3/django/booth/sets/',
+        formData,
       );
       return response.data;
     } catch (error) {
       return {
-        status: "error",
-        message: "세트 메뉴 등록에 실패했습니다.",
+        status: 'error',
+        message: '세트 메뉴 등록에 실패했습니다.',
         code: 500,
         data: null,
       };
     }
   },
 
-  // 세트메뉴 수정 — v2→v3
+  // 세트메뉴 수정
   updateSetMenu: async (
     set_menu_id: number,
-    formData: FormData
+    formData: FormData,
   ): Promise<MenuRegistResponse> => {
     try {
       const response = await instatnceWithImg.patch<MenuRegistResponse>(
         `/api/v3/django/booth/sets/${set_menu_id}/`,
-        formData
+        formData,
       );
       return response.data;
     } catch (error) {
       return {
-        status: "error",
-        message: "세트 메뉴 수정에 실패했습니다.",
+        status: 'error',
+        message: '세트 메뉴 수정에 실패했습니다.',
         code: 500,
         data: null,
       };
     }
   },
 
-  // 세트메뉴 생성(JSON) — v2→v3, 필드명: set_name→name, set_description→description, set_price→price
+  // 세트메뉴 생성
   createSettMenu: async (payload: {
     name: string;
     description: string;
@@ -107,7 +107,7 @@ const MenuServiceWithImg = {
     }
   },
 
-  // 세트메뉴 수정(JSON) — v2→v3, 필드명 동일
+  // 세트메뉴 수정(JSON)
   editSetMenu: async (
     id: number,
     payload: {
@@ -115,7 +115,7 @@ const MenuServiceWithImg = {
       description: string;
       price: number | string;
       set_items: { menu_id: number; quantity: number }[];
-    }
+    },
   ): Promise<void> => {
     try {
       await instatnceWithImg.patch(`/api/v3/django/booth/sets/${id}/`, payload);
@@ -124,7 +124,7 @@ const MenuServiceWithImg = {
     }
   },
 
-  // 세트메뉴 삭제 — v2→v3
+  // 세트메뉴 삭제
   deleteSetMenu: async (id: number): Promise<void> => {
     try {
       await instatnceWithImg.delete(`/api/v3/django/booth/sets/${id}/`);
