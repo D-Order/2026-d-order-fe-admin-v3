@@ -1,6 +1,10 @@
 import type { OrderBoxData, OrderItem } from '../compoenents/orderbox/OrderBox';
 import type { OrderStatus } from '../compoenents/orderboxitem/OrderBoxItem.styled';
-import type { AdminOrderSnapshotItem } from '../types/orderManagementWs';
+import type {
+  AdminOrderSnapshotItem,
+  AdminOrderSnapshotLineItem,
+  AdminOrderSnapshotOrderRow,
+} from '../types/orderManagementWs';
 
 const BASE_URL = (import.meta.env.VITE_BASE_URL ?? '').toString().replace(/\/+$/, '');
 
@@ -17,6 +21,21 @@ export function mapStatus(apiStatus: string): OrderStatus {
   return '조리중';
 }
 
+/** WS 라인 아이템 → OrderBox OrderItem (스냅샷·신규주문 공통) */
+export function mapWsLineItemToOrderItem(row: AdminOrderSnapshotLineItem): OrderItem {
+  const item: OrderItem = {
+    set_menu: Boolean(row.is_set),
+    menuName: row.menu_name ?? '',
+    quantity: Number(row.quantity) || 1,
+    status: mapStatus(row.status),
+  };
+  if (row.order_item_id != null) item.id = row.order_item_id;
+  if (row.image) {
+    item.imageUrl = String(row.image).startsWith('http') ? row.image : `${BASE_URL}${row.image}`;
+  }
+  return item;
+}
+
 /** created_at 기준 "N분전" 형태 (간단 버전) */
 function formatTableTime(createdAt?: string): string {
   if (!createdAt) return '00분전';
@@ -29,9 +48,25 @@ function formatTableTime(createdAt?: string): string {
   return `${h}시간전`;
 }
 
-export function mapSnapshotToOrderBoxData(
-  orders: AdminOrderSnapshotItem[]
-): OrderBoxData[] {
+function isNestedSnapshotRow(row: AdminOrderSnapshotOrderRow | AdminOrderSnapshotItem): row is AdminOrderSnapshotOrderRow {
+  return Array.isArray((row as AdminOrderSnapshotOrderRow).items);
+}
+
+/**
+ * v3 스냅샷: 주문 단위 + items[]
+ * 서버가 created_at 오래된 순으로 내려주므로 배열 순서 그대로 유지 (테이블 번호로 재정렬하지 않음).
+ */
+function mapNestedSnapshotOrders(orders: AdminOrderSnapshotOrderRow[]): OrderBoxData[] {
+  return orders.map((order) => ({
+    orderId: order.order_id,
+    tableNumber: Number(order.table_num) || 1,
+    tableTime: order.time_ago?.trim() || '00분전',
+    items: (order.items ?? []).map((row) => mapWsLineItemToOrderItem(row)),
+  }));
+}
+
+/** 레거시 평면 스냅샷 */
+function mapLegacyFlatSnapshot(orders: AdminOrderSnapshotItem[]): OrderBoxData[] {
   const byTable = new Map<number, { items: OrderItem[]; earliestAt?: string }>();
 
   for (const o of orders) {
@@ -62,4 +97,14 @@ export function mapSnapshotToOrderBoxData(
       tableTime: formatTableTime(earliestAt),
       items,
     }));
+}
+
+export function mapSnapshotToOrderBoxData(
+  orders: AdminOrderSnapshotOrderRow[] | AdminOrderSnapshotItem[]
+): OrderBoxData[] {
+  if (!orders.length) return [];
+  if (isNestedSnapshotRow(orders[0])) {
+    return mapNestedSnapshotOrders(orders as AdminOrderSnapshotOrderRow[]);
+  }
+  return mapLegacyFlatSnapshot(orders as AdminOrderSnapshotItem[]);
 }

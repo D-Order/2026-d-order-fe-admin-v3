@@ -1,13 +1,13 @@
-import preUploadImg from "@assets/images/preUploadImg.png";
-import * as S from "./styled";
-import { useState, useEffect, useRef } from "react";
-import MenuService from "@services/MenuService";
-import { IMAGE_CONSTANTS } from "@constants/imageConstants";
-import MenuDropdown from "@pages/menu/_components/MenuDropdown";
-import MenuServiceWithImg from "@services/MenuServiceWithImg";
-import { HandleNumberInput } from "../_utils/HandleNumberInput";
-import { compressImage } from "../_utils/ImageCompress";
-import { BoothMenuData } from "@pages/menu/Type/Menu_type";
+import preUploadImg from '@assets/images/preUploadImg.png';
+import * as S from './styled';
+import { useState, useEffect, useRef } from 'react';
+import MenuService from '@services/MenuService';
+import { IMAGE_CONSTANTS } from '@constants/imageConstants';
+import MenuDropdown from '@pages/menu/_components/MenuDropdown';
+import MenuServiceWithImg from '@services/MenuServiceWithImg';
+import { HandleNumberInput } from '../_utils/HandleNumberInput';
+import { compressImage } from '../_utils/ImageCompress';
+import { BoothMenuData } from '@pages/menu/Type/Menu_type';
 
 interface MenuModalProps {
   handleCloseModal: () => void;
@@ -37,11 +37,11 @@ const MenuModal = ({ handleCloseModal, boothMenuData }: MenuModalProps) => {
   const [UploadImg, setUploadImg] = useState<string | null>(null);
   const [buttonDisable, setButtonDisable] = useState<boolean>(true);
 
-  const [category, setCategory] = useState<string>("메뉴");
-  const [name, setName] = useState<string>("");
-  const [desc, setDesc] = useState<string>("");
-  const [price, setPrice] = useState<string>("");
-  const [stock, setStock] = useState<string>("");
+  const [category, setCategory] = useState<string>('메뉴');
+  const [name, setName] = useState<string>('');
+  const [desc, setDesc] = useState<string>('');
+  const [price, setPrice] = useState<string>('');
+  const [stock, setStock] = useState<string>('');
   const [image, setImage] = useState<File | null>(null);
 
   const fileInputRef = useRef<HTMLInputElement | null>(null);
@@ -56,21 +56,21 @@ const MenuModal = ({ handleCloseModal, boothMenuData }: MenuModalProps) => {
   const handleAddSetItem = () => {
     setSetItems((prev) => [
       ...prev,
-      { menuId: null, menuName: "", amount: 1, isOpen: false },
+      { menuId: null, menuName: '', amount: 1, isOpen: false },
     ]);
   };
 
   const handleChangeSelected = (idx: number, id: number, menuName: string) => {
     setSetItems((prev) =>
       prev.map((it, i) =>
-        i === idx ? { ...it, menuId: id, menuName, isOpen: false } : it
-      )
+        i === idx ? { ...it, menuId: id, menuName, isOpen: false } : it,
+      ),
     );
   };
 
   const handleChangeAmount = (idx: number, value: number) => {
     setSetItems((prev) =>
-      prev.map((it, i) => (i === idx ? { ...it, amount: value } : it))
+      prev.map((it, i) => (i === idx ? { ...it, amount: value } : it)),
     );
   };
 
@@ -79,7 +79,7 @@ const MenuModal = ({ handleCloseModal, boothMenuData }: MenuModalProps) => {
       prev.map((it, i) => ({
         ...it,
         isOpen: i === idx ? !it.isOpen : false,
-      }))
+      })),
     );
   };
 
@@ -101,10 +101,10 @@ const MenuModal = ({ handleCloseModal, boothMenuData }: MenuModalProps) => {
   };
 
   const handlePriceChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const raw = e.target.value || "";
-    const digitsOnly = raw.replace(/\D/g, "");
+    const raw = e.target.value || '';
+    const digitsOnly = raw.replace(/\D/g, '');
     if (!digitsOnly) {
-      setPrice("");
+      setPrice('');
       return;
     }
     const num = Number(digitsOnly);
@@ -113,10 +113,10 @@ const MenuModal = ({ handleCloseModal, boothMenuData }: MenuModalProps) => {
   };
 
   const handleStockChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const raw = e.target.value || "";
-    const digitsOnly = raw.replace(/\D/g, "");
+    const raw = e.target.value || '';
+    const digitsOnly = raw.replace(/\D/g, '');
     if (!digitsOnly) {
-      setStock("");
+      setStock('');
       return;
     }
     const num = Number(digitsOnly);
@@ -135,14 +135,14 @@ const MenuModal = ({ handleCloseModal, boothMenuData }: MenuModalProps) => {
     setUploadImg(null);
     setImage(null);
     if (fileInputRef.current) {
-      fileInputRef.current.value = "";
+      fileInputRef.current.value = '';
     }
   };
   useEffect(() => {
     if (
       name &&
       price &&
-      (category === "세트" ? setItems.length > 0 : stock) &&
+      (category === '세트' ? setItems.length > 0 : stock) &&
       category
     ) {
       setButtonDisable(false);
@@ -159,32 +159,33 @@ const MenuModal = ({ handleCloseModal, boothMenuData }: MenuModalProps) => {
       !category ||
       !name ||
       !price ||
-      (category === "세트" ? setItems.length === 0 : !stock)
+      (category === '세트' ? setItems.length === 0 : !stock)
     ) {
-      alert("모든 필수 항목을 채워주세요.");
+      alert('모든 필수 항목을 채워주세요.');
       return;
     }
 
     if (image && image.size > MAX_FILE_SIZE) {
-      alert("이미지 용량이 10mb 를 초과하였습니다!");
+      alert('이미지 용량이 10mb 를 초과하였습니다!');
       return;
     }
 
-    if (category === "세트") {
+    if (category === '세트') {
       const menu_items = setItems
         .filter((it) => it.menuId !== null)
         .map((it) => ({ menu_id: it.menuId as number, quantity: it.amount }));
 
+      // V3 필드명: set_name→name, set_description→description, set_price→price, set_image→image
       const formData = new FormData();
-      formData.append("set_name", name);
-      formData.append("set_description", desc || "");
-      formData.append("set_price", String(Number(price)));
-      formData.append("menu_items", JSON.stringify(menu_items));
+      formData.append('name', name);
+      formData.append('description', desc || '');
+      formData.append('price', String(Number(price)));
+      formData.append('set_items', JSON.stringify(menu_items));
 
       if (image) {
         const fileToUpload =
           image.size <= MIN_FILE_SIZE ? image : await compressImage(image);
-        formData.append("set_image", fileToUpload);
+        formData.append('image', fileToUpload);
       }
 
       try {
@@ -197,20 +198,21 @@ const MenuModal = ({ handleCloseModal, boothMenuData }: MenuModalProps) => {
     }
 
     // 단일 메뉴 처리
+    const categoryMap: Record<string, string> = { '메뉴': 'MENU', '음료': 'DRINK' };
     const formData = new FormData();
-    formData.append("menu_name", name);
-    formData.append("menu_description", desc || "");
-    formData.append("menu_category", category);
-    formData.append("menu_price", price);
-    formData.append("menu_amount", stock);
+    formData.append('name', name);
+    formData.append('description', desc || '');
+    formData.append('category', categoryMap[category] ?? category);
+    formData.append('price', price);
+    formData.append('stock', stock);
 
     if (image) {
       if (image.size <= MIN_FILE_SIZE) {
-        formData.append("menu_image", image);
+        formData.append('image', image);
       } else {
         try {
           const correctedFile = await compressImage(image);
-          formData.append("menu_image", correctedFile);
+          formData.append('image', correctedFile);
         } catch (e) {
           console.log(e);
         }
@@ -250,8 +252,8 @@ const MenuModal = ({ handleCloseModal, boothMenuData }: MenuModalProps) => {
                   type="radio"
                   name="category"
                   value="메뉴"
-                  onChange={() => setCategory("메뉴")}
-                  checked={category === "메뉴"}
+                  onChange={() => setCategory('메뉴')}
+                  checked={category === '메뉴'}
                 />
                 메뉴
               </label>
@@ -260,8 +262,8 @@ const MenuModal = ({ handleCloseModal, boothMenuData }: MenuModalProps) => {
                   type="radio"
                   name="category"
                   value="음료"
-                  onChange={() => setCategory("음료")}
-                  checked={category === "음료"}
+                  onChange={() => setCategory('음료')}
+                  checked={category === '음료'}
                 />
                 음료
               </label>
@@ -270,8 +272,8 @@ const MenuModal = ({ handleCloseModal, boothMenuData }: MenuModalProps) => {
                   type="radio"
                   name="category"
                   value="세트"
-                  onChange={() => setCategory("세트")}
-                  checked={category === "세트"}
+                  onChange={() => setCategory('세트')}
+                  checked={category === '세트'}
                 />
                 세트
               </label>
@@ -311,7 +313,7 @@ const MenuModal = ({ handleCloseModal, boothMenuData }: MenuModalProps) => {
               onInput={HandleNumberInput}
             />
           </S.ele>
-          {category === "세트" && (
+          {category === '세트' && (
             <S.ele>
               <S.setComposition>
                 <S.SubTitle>
@@ -340,7 +342,7 @@ const MenuModal = ({ handleCloseModal, boothMenuData }: MenuModalProps) => {
               ))}
             </S.ele>
           )}
-          {category !== "세트" && (
+          {category !== '세트' && (
             <S.ele>
               <S.SubTitle>
                 재고수량<span>*</span>

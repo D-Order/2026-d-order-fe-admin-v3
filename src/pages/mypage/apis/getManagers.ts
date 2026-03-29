@@ -1,64 +1,43 @@
-// mypage/api/getManager.ts
+// mypage/apis/getManagers.ts
 import axios, { AxiosError } from "axios";
 
 /** 좌석 과금 타입 */
 export type SeatType = "PT" | "PP" | "NO"; // Per Table / Per Person / No Seat Tax
 
-/** 운영자 정보 스키마 (data) */
-export interface ManagerInfo {
-  user: number;
-  booth: number; // booth_id
-  booth_name: string;
-  table_num: number;
-  order_check_password: string;
-  account: string;
-  depositor: string;
+/** 부스 마이페이지 정보 스키마 (data) */
+export interface BoothMyPageData {
+  name: string;
+  table_max_cnt: number;
   bank: string;
+  account: string; // 계좌번호는 보통 0으로 시작할 수 있어 string으로 관리하는 것이 안전합니다.
+  depositor: string;
   seat_type: SeatType;
-  seat_tax_person: number | null;
-  seat_tax_table: number | null;
-  table_limit_hours: number; // 분 단위(예: 120)
+  seat_fee_person: number;
+  seat_fee_table: number;
+  table_limit_hours: string | number; // GET 시 문자열(ex: "2.00")로 올 수 있음
 }
 
 /** 공통 응답 래퍼 */
 export interface ApiEnvelope<T> {
   message: string;
-  code: number; // HTTP status code
   data: T | null;
 }
 
-/** 오류 응답 형태(명세 예시 기반) */
+/** 오류 응답 형태 */
 export interface ApiErrorBody {
-  status?: "error";
+  detail?: string;
   message?: string;
-  code?: number;
-  data?: unknown;
 }
 
 const BASE_URL = import.meta.env.VITE_BASE_URL ?? "";
 
 const api = axios.create({
   baseURL: BASE_URL,
-  withCredentials: false,
+  withCredentials: true, // 쿠키 자동 전송 (🔒 인증 필요)
   headers: {
     "Content-Type": "application/json",
   },
 });
-
-/** 로컬에서 액세스 토큰 가져오기 (우선순위: accessToken > access > token) */
-function getLocalToken(): string | null {
-  return (
-    localStorage.getItem("accessToken") ||
-    localStorage.getItem("access") ||
-    localStorage.getItem("token")
-  );
-}
-
-/** 요청 시 Authorization 헤더 구성 */
-function authHeaders(token?: string) {
-  const t = token ?? getLocalToken();
-  return t ? { Authorization: `Bearer ${t}` } : {};
-}
 
 /** 에러를 사람이 읽기 쉬운 형태로 변환하여 throw */
 function normalizeAndThrow(error: unknown): never {
@@ -68,9 +47,10 @@ function normalizeAndThrow(error: unknown): never {
     const status = err.response?.status;
 
     const msg =
+      body?.detail ||
       body?.message ||
       (status === 401
-        ? "로그인 후 이용해주세요!"
+        ? "자격 인증 데이터가 제공되지 않았습니다."
         : status === 400
         ? "입력한 값이 유효하지 않습니다."
         : status === 403
@@ -79,8 +59,8 @@ function normalizeAndThrow(error: unknown): never {
 
     const enriched = {
       message: msg,
-      code: body?.code ?? status ?? 500,
-      data: body?.data ?? null,
+      code: status ?? 500,
+      data: null,
     };
     throw enriched;
   }
@@ -93,14 +73,11 @@ function normalizeAndThrow(error: unknown): never {
   };
 }
 
-/** 1) 운영자 정보 조회 (GET /api/v2/manager/mypage/) */
-export async function getManagerInfo(params?: {
-  token?: string;
-}): Promise<ApiEnvelope<ManagerInfo>> {
+/** 부스 마이페이지 정보 조회 (GET /api/v3/django/booth/mypage/) */
+export async function getManagerInfo(): Promise<ApiEnvelope<BoothMyPageData>> {
   try {
-    const res = await api.get<ApiEnvelope<ManagerInfo>>(
-      "/api/v2/manager/mypage/",
-      { headers: authHeaders(params?.token) }
+    const res = await api.get<ApiEnvelope<BoothMyPageData>>(
+      "/api/v3/django/booth/mypage/"
     );
     return res.data;
   } catch (e) {
@@ -108,44 +85,20 @@ export async function getManagerInfo(params?: {
   }
 }
 
-/** 2) 운영자 정보 수정 (PATCH /api/v2/manager/mypage/) */
-export async function patchManagerInfo(
-  payload: Partial<ManagerInfo>,
-  params?: { token?: string }
-): Promise<ApiEnvelope<ManagerInfo>> {
-  try {
-    const res = await api.patch<ApiEnvelope<ManagerInfo>>(
-      "/api/v2/manager/mypage/",
-      payload,
-      { headers: authHeaders(params?.token) }
-    );
-    return res.data;
-  } catch (e) {
-    normalizeAndThrow(e);
-  }
-}
-
-/** 좌석 과금 타입에 따른 필드 정합성 보조(선택): PP/NO/PT에 맞춰 null 처리 */
+/** 좌석 과금 타입에 따른 필드 정합성 보조: 비활성 과금 필드는 0으로 보정 */
 export function normalizeSeatFields(
-  patch: Partial<ManagerInfo>
-): Partial<ManagerInfo> {
-  const seat = patch.seat_type;
-  if (!seat) return patch;
+  patch: Partial<BoothMyPageData>
+): Partial<BoothMyPageData> {
+  if (!patch.seat_type) return patch;
+  const next: Partial<BoothMyPageData> = { ...patch };
 
-  const next: Partial<ManagerInfo> = { ...patch };
-  if (seat === "PP") {
-    // 인당 과금: table은 null이어야 자연스럽다
-    if (typeof next.seat_tax_table !== "undefined") next.seat_tax_table = null;
-    if (typeof next.seat_tax_person === "undefined") next.seat_tax_person = 0;
-  } else if (seat === "PT") {
-    // 테이블당 과금: person은 null
-    if (typeof next.seat_tax_person !== "undefined")
-      next.seat_tax_person = null;
-    if (typeof next.seat_tax_table === "undefined") next.seat_tax_table = 0;
-  } else if (seat === "NO") {
-    // 과금 없음: 둘 다 null
-    next.seat_tax_person = null;
-    next.seat_tax_table = null;
+  if (patch.seat_type === "PP") {
+    next.seat_fee_table = 0;
+  } else if (patch.seat_type === "PT") {
+    next.seat_fee_person = 0;
+  } else if (patch.seat_type === "NO") {
+    next.seat_fee_person = 0;
+    next.seat_fee_table = 0;
   }
   return next;
 }

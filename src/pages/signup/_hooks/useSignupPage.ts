@@ -57,7 +57,7 @@ export const useSignupPage = (
     }
     try {
       const seatType = formData.tableFeePolicy as 'PT' | 'PP' | 'NO';
-      await UserService.postSignupV3({
+      const response = await UserService.postSignupV3({
         username: formData.userId,
         password: formData.password,
         booth_data: {
@@ -72,6 +72,16 @@ export const useSignupPage = (
           table_limit_hours: Number(formData.maxTime),
         },
       });
+
+      const { booth_id } = response.data;
+      if (!response.token?.access) {
+        await UserService.loginV3({
+          username: formData.userId,
+          password: formData.password,
+        });
+      }
+      localStorage.setItem('Booth-ID', String(booth_id));
+      navigate(ROUTE_PATHS.HOME);
       return true;
     } catch (err: unknown) {
       if (err && typeof err === 'object' && 'response' in err) {
@@ -97,7 +107,7 @@ export const useSignupPage = (
       }
       return false;
     }
-  }, [formData, mockSignupSubmit]);
+  }, [formData, mockSignupSubmit, navigate]);
 
   const goNext = useCallback(() => {
     setStep((prev) => (prev < Step.COMPLETE ? ((prev + 1) as Step) : prev));

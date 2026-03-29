@@ -1,15 +1,8 @@
-//헤더 api연결
-import { instance } from "./instance";
+import { instance } from './instance';
 
-export interface BoothRevenueResponse {
-  status: string;
+export interface BoothNameResponse {
   message: string;
-  code: number;
-  data: {
-    booth_id: number;
-    booth_name: string;
-    total_revenue: number;
-  } | null;
+  data: { booth_name: string };
 }
 
 /**
@@ -17,24 +10,15 @@ export interface BoothRevenueResponse {
  */
 const BoothService = {
   /**
-   * 부스 매출 정보를 조회합니다.
-   * @returns 부스 매출 정보 응답
+   * 부스 이름 조회 (GET /api/v3/django/booth/{booth_id}/name/)
    */
-  getBoothRevenue: async (): Promise<BoothRevenueResponse> => {
-    try {
-      const response = await instance.get<BoothRevenueResponse>(
-        "/api/v2/booth/revenues/"
-      );
-      return response.data;
-    } catch (error) {
-      // 기본 응답 반환
-      return {
-        status: "error",
-        message: "부스 정보를 불러오는데 실패했습니다.",
-        code: 500,
-        data: null,
-      };
-    }
+  getBoothName: async (
+    boothId: number | string,
+  ): Promise<BoothNameResponse> => {
+    const response = await instance.get<BoothNameResponse>(
+      `/api/v3/django/booth/${boothId}/name/`,
+    );
+    return response.data;
   },
 };
 

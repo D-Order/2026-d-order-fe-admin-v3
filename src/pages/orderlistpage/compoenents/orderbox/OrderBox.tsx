@@ -15,6 +15,8 @@ export type OrderItem = {
 };
 
 export type OrderBoxData = {
+  /** WS 주문 ID — 스냅샷·완료 이벤트와 매칭 (동일 테이블 다주문 구분) */
+  orderId?: number;
   tableNumber: number | string;
   tableTime?: string;
   items: OrderItem[];

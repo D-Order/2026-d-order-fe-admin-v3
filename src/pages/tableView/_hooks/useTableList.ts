@@ -7,7 +7,7 @@ export type UseTableListState = {
   error: string | null;
   tables: TableItem[];
   refetch: () => Promise<void>;
-  activateCount: number;
+  activateCount: number; // 컴포넌트 호환성을 위해 이름 유지 (의미는 사용 중인 테이블 수)
   totalRevenue: number;
 };
 
@@ -22,7 +22,7 @@ export function useTableList(): UseTableListState {
     try {
       const result = await getTableList();
       setTables(result.data);
-      console.info("[useTableList] tables:", result.data);
+      console.info("[useTableList] tables fetch success");
     } catch (e: any) {
       const msg = e?.message ?? "요청 실패";
       setError(msg);
@@ -38,10 +38,12 @@ export function useTableList(): UseTableListState {
 
   const refetch = fetchOnce;
 
+  // "activate" 대신 새로운 명세인 "IN_USE"로 상태 체크
   const activateCount = useMemo(
-    () => tables.filter((t) => t.status === "activate").length,
+    () => tables.filter((t) => t.status === "IN_USE").length,
     [tables]
   );
+  
   const totalRevenue = useMemo(
     () => tables.reduce((sum, t) => sum + (t.amount ?? 0), 0),
     [tables]

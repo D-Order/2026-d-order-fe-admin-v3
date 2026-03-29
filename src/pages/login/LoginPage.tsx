@@ -11,7 +11,6 @@ import NextButton from './_components/buttons/NextButton';
 import LoginImages from './LoginImages';
 
 import UserService from '@services/UserService';
-import { useAuthStore } from '../../stores/authStore';
 
 /** Storybook/테스트용: 설정 시 실제 API 대신 해당 결과 분기만 보여줌 */
 export type LoginPageProps = {
@@ -20,7 +19,6 @@ export type LoginPageProps = {
 
 const LoginPage = ({ mockLogin }: LoginPageProps = {}) => {
   const navigate = useNavigate();
-  const setAuth = useAuthStore((s) => s.setAuth);
   const [formData, setFormData] = useState({
     username: '',
     password: '',
@@ -48,11 +46,16 @@ const LoginPage = ({ mockLogin }: LoginPageProps = {}) => {
         response = await UserService.loginV3(formData);
       }
 
-      const { username, booth_id } = response.data;
-      const accessToken = response.token?.access;
-      const refreshToken = response.token?.refresh;
+      const data = response.data ?? (response as { username?: string; booth_id?: number });
+      const username = data.username ?? '';
+      const booth_id = data.booth_id ?? 0;
 
-      setAuth({ username, booth_id, accessToken, refreshToken });
+      if (!username && booth_id === 0) {
+        alert('로그인 응답이 올바르지 않습니다.');
+        return;
+      }
+
+      localStorage.setItem('Booth-ID', String(booth_id));
       navigate(ROUTE_PATHS.HOME);
     } catch (err) {
       alert('로그인 실패했습니다. 다시 시도해 주세요.');
