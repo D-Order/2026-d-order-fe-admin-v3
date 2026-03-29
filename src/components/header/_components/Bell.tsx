@@ -9,8 +9,8 @@ interface BellProps {
   modalOpen: boolean;
   onCloseModal: () => void;
 }
-
-const Bell = ({ active, onClick, modalOpen, onCloseModal }: BellProps) => {
+//actice나중에 추가 - API 연결 후 hasUnread 기반으로 active 재연결 필요
+const Bell = ({ onClick, modalOpen, onCloseModal }: BellProps) => {
   // 미처리 알림 수 (더미 데이터 기반 — API 연결 시 교체)
   const activeCount = dummyNotifications.filter((n) => !n.isProcessed).length;
 
