@@ -123,20 +123,30 @@ async function v3RefreshFallbackRetry(
 
 // 요청 인터셉터: 로그인/회원가입/refresh URL에는 Authorization 제외
 instance.interceptors.request.use(
-  (config: InternalAxiosRequestConfig) => {
+  async (config: InternalAxiosRequestConfig) => {
     const token = localStorage.getItem('accessToken');
     if (token && !isAuthEndpoint(config.url)) {
       config.headers['Authorization'] = `Bearer ${token}`;
     }
 
-    // 👇 핵심 해결 로직: POST, PATCH 등 안전하지 않은 메서드일 때 직접 쿠키에서 꺼내서 헤더에 강제 주입!
-    if (isUnsafeMethod(config.method)) {
-      const csrfCookie = document.cookie
+    // unsafe 메서드(POST/PATCH/PUT/DELETE)일 때 CSRF 토큰 주입
+    if (isUnsafeMethod(config.method) && !isCsrfTokenEndpoint(config.url)) {
+      let csrfToken = document.cookie
         .split('; ')
         .find((row) => row.startsWith('csrftoken='))
         ?.split('=')[1];
-      if (csrfCookie) {
-        config.headers['X-CSRFToken'] = csrfCookie;
+
+      // 쿠키에 없으면(첫 접속 등) 서버에서 미리 발급받아 주입 — instatnceWithImg와 동일
+      if (!csrfToken) {
+        try {
+          csrfToken = (await fetchCsrfToken()) ?? undefined;
+        } catch (e) {
+          console.error('CSRF 토큰 사전 발급 실패', e);
+        }
+      }
+
+      if (csrfToken) {
+        config.headers['X-CSRFToken'] = csrfToken;
       }
     }
 
