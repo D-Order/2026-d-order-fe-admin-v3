@@ -1,5 +1,6 @@
 // mypage/apis/getQRDownload.ts
 import axios, { AxiosError } from "axios";
+import { instance } from "@services/instance"; // ✅ 전역 인스턴스 사용
 
 /** QR 조회 응답 인터페이스 */
 export interface QrResponseData {
@@ -15,14 +16,6 @@ export interface ApiErrorBody {
     detail?: string;
     message?: string;
 }
-
-const BASE_URL = import.meta.env.VITE_BASE_URL ?? "";
-
-const api = axios.create({
-    baseURL: BASE_URL,
-    withCredentials: true, // 🔒 쿠키 자동 전송
-    headers: { "Content-Type": "application/json" },
-});
 
 function normalizeAndThrow(error: unknown): never {
     if (axios.isAxiosError(error)) {
@@ -50,7 +43,7 @@ function normalizeAndThrow(error: unknown): never {
 /** 1) QR 이미지 URL 조회 API 호출 */
 export async function getManagerQRUrl(): Promise<string> {
     try {
-        const res = await api.get<ApiEnvelope<QrResponseData>>(
+        const res = await instance.get<ApiEnvelope<QrResponseData>>(
         "/api/v3/django/booth/mypage/qr-download"
         );
         

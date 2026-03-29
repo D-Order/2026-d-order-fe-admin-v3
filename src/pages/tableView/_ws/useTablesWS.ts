@@ -23,71 +23,86 @@ export const useTablesWS = (options: UseTablesWSOptions = {}) => {
         let isMounted = true;
 
         const connect = () => {
-        const wsUrl = `${WS_BASE_URL}/ws/django/booth/tables/`;
-        const socket = new WebSocket(wsUrl);
-        wsRef.current = socket;
+            // 1. 토큰 가져오기 (CORS 환경에서 쿠키가 전송되지 않을 때를 대비한 쿼리스트링 방식)
+            const token = localStorage.getItem('accessToken') || "";
+            
+            // 2. URL 설정 (토큰 포함)
+            // 🚨 만약 이 주소로도 안 되면, 중간에 v3를 넣어서 테스트 해보세요! (/ws/v3/django/...)
+            const wsUrl = `${WS_BASE_URL}/ws/django/booth/tables/?token=${token}`;
+            
+            console.log(`[WS:Tables] 🔄 연결 시도 중... URL: ${wsUrl}`);
 
-        socket.onopen = () => {
-            console.log("[WS:Tables] 연결됨");
-        };
+            const socket = new WebSocket(wsUrl);
+            wsRef.current = socket;
 
-        socket.onmessage = (event) => {
-            if (!isMounted) return;
-            try {
-            const payload: TableWSPayload = JSON.parse(event.data);
-            console.debug("[WS:Tables] 수신:", payload);
+            socket.onopen = () => {
+                console.log(`[WS:Tables] 🟢 연결 성공! (readyState: ${socket.readyState})`);
+            };
 
-            switch (payload.type) {
-                case "connection_established":
-                options.onConnectionEstablished?.(payload.data);
-                break;
-                case "merge_table":
-                options.onMergeTable?.(payload.data);
-                break;
-                case "reset_table":
-                options.onResetTable?.(payload.data);
-                break;
-                case "enter_table":
-                options.onEnterTable?.(payload.data);
-                break;
-                case "order_update":
-                options.onOrderUpdate?.(payload.data);
-                break;
-                case "ERROR":
-                console.error("[WS:Tables] 서버 에러:", payload.data);
-                options.onError?.(payload.data);
-                // SERVER_ERROR 시 즉시 재연결 로직 등 추가 가능
-                break;
-                default:
-                console.warn("[WS:Tables] 알 수 없는 타입:", payload);
-            }
-            } catch (error) {
-            console.error("[WS:Tables] 메시지 파싱 에러:", error);
-            }
-        };
+            socket.onmessage = (event) => {
+                if (!isMounted) return;
+                try {
+                    const payload: TableWSPayload = JSON.parse(event.data);
+                    console.debug("[WS:Tables] 📩 메시지 수신:", payload);
 
-        socket.onclose = (event) => {
-            console.log("[WS:Tables] 연결 종료:", event.code);
-            // 4001(인증 실패)가 아니면 3초 후 자동 재연결 시도
-            if (isMounted && event.code !== 4001) {
-            reconnectTimeoutRef.current = window.setTimeout(connect, 3000);
-            }
-        };
+                    switch (payload.type) {
+                        case "connection_established":
+                            options.onConnectionEstablished?.(payload.data);
+                            break;
+                        case "merge_table":
+                            options.onMergeTable?.(payload.data);
+                            break;
+                        case "reset_table":
+                            options.onResetTable?.(payload.data);
+                            break;
+                        case "enter_table":
+                            options.onEnterTable?.(payload.data);
+                            break;
+                        case "order_update":
+                            options.onOrderUpdate?.(payload.data);
+                            break;
+                        case "ERROR":
+                            console.error("[WS:Tables] ❌ 서버 응답 에러:", payload.data);
+                            options.onError?.(payload.data);
+                            break;
+                        default:
+                            console.warn("[WS:Tables] ⚠️ 알 수 없는 타입 수신:", payload);
+                    }
+                } catch (error) {
+                    console.error("[WS:Tables] 💥 메시지 파싱 에러 (JSON 형식이 아님):", error, event.data);
+                }
+            };
 
-        socket.onerror = (error) => {
-            console.error("[WS:Tables] 소켓 에러:", error);
-        };
+            socket.onclose = (event) => {
+                // 1006 에러 등의 경우 디버깅을 위해 코드와 이유, 정상 종료 여부를 상세히 출력
+                console.log(
+                    `[WS:Tables] ⚪ 연결 종료. Code: ${event.code}, Reason: '${event.reason || "없음"}', Clean: ${event.wasClean}`
+                );
+
+                // 4001(인증 실패)가 아니면 3초 후 자동 재연결 시도
+                if (isMounted && event.code !== 4001) {
+                    console.log("[WS:Tables] ⏳ 3초 후 재연결을 시도합니다...");
+                    reconnectTimeoutRef.current = window.setTimeout(connect, 3000);
+                } else if (event.code === 4001) {
+                    console.error("[WS:Tables] 🚨 인증 실패(4001)로 인해 재연결을 시도하지 않습니다.");
+                }
+            };
+
+            socket.onerror = (error) => {
+                console.error("[WS:Tables] 🔴 소켓 에러 발생! (1006인 경우 Nginx 설정이나 토큰 문제일 확률 높음):", error);
+            };
         };
 
         connect();
 
         return () => {
-        isMounted = false;
-        if (reconnectTimeoutRef.current) clearTimeout(reconnectTimeoutRef.current);
-        if (wsRef.current) {
-            wsRef.current.close();
-            wsRef.current = null;
-        }
+            isMounted = false;
+            if (reconnectTimeoutRef.current) clearTimeout(reconnectTimeoutRef.current);
+            if (wsRef.current) {
+                console.log("[WS:Tables] 🧹 컴포넌트 언마운트 - 소켓 연결을 정리합니다.");
+                wsRef.current.close();
+                wsRef.current = null;
+            }
         };
     }, []); // 의존성 배열 비움 (마운트 시 1회 연결)
 
