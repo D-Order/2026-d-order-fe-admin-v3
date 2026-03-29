@@ -3,6 +3,28 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import BoothService from '@services/BoothService';
 
+// 쿠키 기반 인증으로 전환되어 URL에 토큰을 포함하지 않음.
+// VITE_BASE_URL(http/https)을 ws/wss로 자동 변환하여 사용.
+const WS_PATH = '/ws/django/booth/sales/';
+
+function getSalesWsUrl(): string {
+  const base = (import.meta.env.VITE_BASE_URL ?? '')
+    .toString()
+    .replace(/\/+$/, '');
+  if (!base) return '';
+  if (base.startsWith('https://'))
+    return `${base.replace('https://', 'wss://')}${WS_PATH}`;
+  if (base.startsWith('http://'))
+    return `${base.replace('http://', 'ws://')}${WS_PATH}`;
+  if (base.startsWith('wss://') || base.startsWith('ws://'))
+    return `${base}${WS_PATH}`;
+  return '';
+}
+
+// close code 정의 (명세 기준)
+const CLOSE_CODE_AUTH_ERROR = 4001; // 인증 실패 — 재연결 불가
+const CLOSE_CODE_PERMISSION_DENIED = 4003; // 부스 없는 계정 — 재연결 불가
+
 const useBoothRevenue = () => {
   const [boothName, setBoothName] = useState<string>('부스 로딩 중...');
   const [totalRevenues, setTotalRevenues] = useState<number>(0);
@@ -38,9 +60,12 @@ const useBoothRevenue = () => {
   }, []);
 
   const connect = useCallback(() => {
-    const accessToken = localStorage.getItem('accessToken');
-    if (!accessToken) {
-      setError('로그인이 필요합니다.');
+    // V3: 쿠키 기반 인증 — accessToken 불필요
+    const wsUrl = getSalesWsUrl();
+    if (!wsUrl) {
+      setError(
+        'WebSocket URL을 구성할 수 없습니다. VITE_BASE_URL을 확인해주세요.',
+      );
       return;
     }
     if (!shouldReconnect()) return;
@@ -54,27 +79,36 @@ const useBoothRevenue = () => {
       return;
     }
 
-    const wsUrl = `wss://api.test-d-order.store/ws/revenue/?token=${accessToken}`;
+    // 브라우저가 same-site 쿠키를 자동으로 포함해 전송함
     const ws = new WebSocket(wsUrl);
     wsRef.current = ws;
 
     ws.onopen = () => {
       setError(null);
+      console.info('[총매출 WS] 웹소켓 연결 성공:', wsUrl);
       retryCountRef.current = 0;
     };
 
     ws.onmessage = (event) => {
       try {
         const message = JSON.parse(event.data);
+        console.log(' [총매출 WS] 메시지 전체 수신:', message);
+        // V3 이벤트 타입: TOTAL_SALES_SNAPSHOT(연결 직후 스냅샷), TOTAL_SALES_UPDATE(이후 갱신)
         if (
-          message?.type === 'REVENUE_SNAPSHOT' ||
-          message?.type === 'REVENUE_UPDATE'
+          message?.type === 'TOTAL_SALES_SNAPSHOT' ||
+          message?.type === 'TOTAL_SALES_UPDATE'
         ) {
-          const next = Number(message.totalRevenue) || 0;
+          // V3 payload 구조: { type, timestamp, data: { today_revenue } }
+          const next = Number(message.data?.today_revenue) || 0;
+          console.log(`[총매출 WS] 매출 업데이트: ${next.toLocaleString()}원`);
           setTotalRevenues(next);
         }
+
+        if (message?.type === 'error') {
+          console.error('🔴 [SALES WS] 서버 에러:', message.message);
+        }
       } catch (e) {
-        console.error('🔴 [REVENUE] 메시지 파싱 오류:', e);
+        console.error('🔴 [SALES WS] 메시지 파싱 오류:', e);
       }
     };
 
@@ -82,9 +116,20 @@ const useBoothRevenue = () => {
       setError('매출 실시간 업데이트 중 오류가 발생했습니다.');
     };
 
-    ws.onclose = () => {
+    ws.onclose = (event) => {
+      // 4001: 인증 실패 — 쿠키 만료 등. 재연결해도 의미 없음
+      if (event.code === CLOSE_CODE_AUTH_ERROR) {
+        setError('인증이 만료되었습니다. 다시 로그인해주세요.');
+        return;
+      }
+      // 4003: 부스 없는 계정 — 권한 문제. 재연결 불가
+      if (event.code === CLOSE_CODE_PERMISSION_DENIED) {
+        setError('부스 정보가 없는 계정입니다.');
+        return;
+      }
+      // 그 외(SERVER_ERROR 등): 지수 백오프 재연결 (1s → 15s)
       if (shouldReconnect()) {
-        const delay = Math.min(1000 * 2 ** retryCountRef.current, 15000); // 1s → 15s
+        const delay = Math.min(1000 * 2 ** retryCountRef.current, 15000);
         retryCountRef.current += 1;
         clearRetryTimer();
         retryTimerRef.current = window.setTimeout(() => {
@@ -94,6 +139,7 @@ const useBoothRevenue = () => {
     };
   }, []);
 
+  // 부스명 조회 (기존 유지 — BoothService 변경 없음)
   useEffect(() => {
     let aborted = false;
 
@@ -133,6 +179,7 @@ const useBoothRevenue = () => {
     };
   }, []);
 
+  // WebSocket 연결 및 네트워크/탭 전환 처리
   useEffect(() => {
     connect();
 
