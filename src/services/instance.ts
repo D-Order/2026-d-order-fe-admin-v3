@@ -6,10 +6,11 @@ import axios, {
 } from 'axios';
 import UserService from './UserService';
 
+// V3 인스턴스: 상대경로 baseURL → vite proxy(로컬) / netlify redirect(배포) 경유
+// 쿠키 기반 인증, SameSite=Lax 호환
 export const instance: AxiosInstance = axios.create({
-  baseURL: import.meta.env.VITE_BASE_URL,
+  baseURL: '/',
   withCredentials: true,
-  // 👇 Axios가 자동으로 csrftoken 쿠키를 읽어서 X-CSRFToken 헤더에 넣도록 지시
   xsrfCookieName: 'csrftoken',
   xsrfHeaderName: 'X-CSRFToken',
   headers: {
@@ -17,6 +18,40 @@ export const instance: AxiosInstance = axios.create({
   },
   timeout: 10000,
 });
+
+// V2 인스턴스: 절대경로 baseURL로 직접 요청 (Bearer 토큰 인증, v3 전환 완료 시 제거 예정)
+export const instanceV2: AxiosInstance = axios.create({
+  baseURL: (import.meta.env.VITE_BASE_URL ?? '').replace(/\/+$/, ''),
+  withCredentials: false,
+  headers: {
+    'Content-Type': 'application/json',
+  },
+  timeout: 10000,
+});
+
+// V2 요청 인터셉터: Bearer 토큰 주입 (로그인/회원가입 제외)
+instanceV2.interceptors.request.use((config) => {
+  const token = localStorage.getItem('accessToken');
+  const isV2AuthEndpoint =
+    config.url?.includes('/api/v2/manager/auth/') ||
+    config.url?.includes('/api/v2/manager/signup/');
+  if (token && !isV2AuthEndpoint) {
+    config.headers['Authorization'] = `Bearer ${token}`;
+  }
+  return config;
+});
+
+// V2 응답 인터셉터: 401 → 로그인 리다이렉트 (v2는 refresh 없이 바로 이동)
+instanceV2.interceptors.response.use(
+  (res) => res,
+  (error: AxiosError) => {
+    if (error.response?.status === 401) {
+      localStorage.removeItem('accessToken');
+      window.location.href = '/login';
+    }
+    return Promise.reject(error);
+  },
+);
 
 const isAuthEndpoint = (url?: string) =>
   url?.includes('/api/v2/manager/auth/') ||
@@ -192,7 +227,8 @@ instance.interceptors.response.use(
           processQueue(null, null);
           return instance(originalRequest);
         } else {
-          const res = await instance.get('/api/v2/manager/auth/');
+          // v2는 instanceV2로 직접 호출 (instance는 이제 v3 전용 상대경로)
+          const res = await instanceV2.get('/api/v2/manager/auth/');
           const newAccessToken = res.data?.data?.access;
           if (!newAccessToken) throw new Error('토큰이 응답에 없습니다.');
 
@@ -244,10 +280,10 @@ instance.interceptors.response.use(
 );
 
 // 이미지 인스턴스도 동일하게 추가해 줍니다.
+// V3 이미지 업로드 인스턴스: instance와 동일하게 상대경로 baseURL
 export const instatnceWithImg: AxiosInstance = axios.create({
-  baseURL: import.meta.env.VITE_BASE_URL,
+  baseURL: '/',
   withCredentials: true,
-  // 👇 추가
   xsrfCookieName: 'csrftoken',
   xsrfHeaderName: 'X-CSRFToken',
   headers: {
@@ -345,7 +381,7 @@ instatnceWithImg.interceptors.response.use(
           processQueue(null, null);
           return instatnceWithImg(originalRequest);
         } else {
-          const res = await instance.get('/api/v2/manager/auth/');
+          const res = await instanceV2.get('/api/v2/manager/auth/');
           const newAccessToken = res.data?.data?.access;
           if (!newAccessToken) throw new Error('토큰이 응답에 없습니다.');
 
