@@ -1,56 +1,29 @@
-import styled from "styled-components";
-import { useRef, useEffect } from "react";
-import { IMAGE_CONSTANTS } from "@constants/imageConstants";
-
-import BellModal from "./BellModal";
+import styled from 'styled-components';
+import { IMAGE_CONSTANTS } from '@constants/imageConstants';
+import BellModal from './BellModal';
+import { dummyNotifications } from '../dummy/dummyNotifications';
 
 interface BellProps {
-  active: boolean; // 종 활성화 여부
+  active: boolean; // 배지 노출 여부 (hasUnread)
   onClick: () => void;
   modalOpen: boolean;
-  notifications: { id: number; message: string }[];
-  onCloseModal: () => void; // 모달 닫기 함수 (Header로부터 받음)
+  onCloseModal: () => void;
 }
 
-const Bell = ({
-  active,
-  onClick,
-  modalOpen,
-  notifications,
-  onCloseModal,
-}: BellProps) => {
-  const bellWrapperRef = useRef<HTMLButtonElement>(null);
-  // BellWrapper에 대한 ref
+const Bell = ({ active, onClick, modalOpen, onCloseModal }: BellProps) => {
+  // 미처리 알림 수 (더미 데이터 기반 — API 연결 시 교체)
+  const activeCount = dummyNotifications.filter((n) => !n.isProcessed).length;
 
-  // 모달 외부 클릭 감지 로직 (Bell 컴포넌트 내부에서 처리)
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      // bellWrapperRef.current에 클릭된 요소가 포함되어 있지 않으면 모달을 닫음
-      // 즉, 벨 아이콘과 모달 영역 '밖'을 클릭했을 때 모달이 닫힘
-      if (
-        bellWrapperRef.current &&
-        !bellWrapperRef.current.contains(event.target as Node)
-      ) {
-        onCloseModal(); // 부모로부터 받은 모달 닫기 함수 호출
-      }
-    };
-
-    if (modalOpen) {
-      document.addEventListener("mousedown", handleClickOutside);
-    } else {
-      document.removeEventListener("mousedown", handleClickOutside);
-    }
-
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-    };
-  }, [modalOpen, onCloseModal]);
+  // 아웃사이드 클릭 감지 제거 — 오버레이(Overlay)가 전체 화면을 덮어
+  // 클릭 아웃사이드를 처리하므로 중복 처리 불필요.
+  // 모달 내부 클릭 시 닫힘 현상도 이 리스너가 원인이었음.
 
   return (
-    <BellWrapper ref={bellWrapperRef} onClick={onClick}>
-      <img src={IMAGE_CONSTANTS.BELL} alt="알림 종 아이콘" />
-      <Dot $active={active} />
-      <BellModal $active={modalOpen} notifications={notifications} />
+    <BellWrapper onClick={onClick}>
+      <img src={IMAGE_CONSTANTS.BELL} alt='알림 종 아이콘' />
+      {/* 미처리 알림 있을 때 숫자 배지 표시 (더미 데이터 기반 — API 연결 시 active 조건 재연결) */}
+      {activeCount > 0 && <Badge>{activeCount}</Badge>}
+      <BellModal $active={modalOpen} onClose={onCloseModal} />
     </BellWrapper>
   );
 };
@@ -67,17 +40,21 @@ const BellWrapper = styled.button`
   cursor: pointer;
 `;
 
-const Dot = styled.div<{ $active: boolean }>`
+const Badge = styled.div`
   position: absolute;
-  top: 0px;
-  right: 0px;
-  width: 6px;
-  height: 6px;
-  background: #ffd232;
-  border-radius: 50%;
+  top: -2px;
+  right: -1px;
+  min-width: 12px;
+  height: 12px;
+  border-radius: 50px;
+  background-color: ${({ theme }) => theme.colors.Point};
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
   z-index: 1;
+  box-sizing: border-box;
 
-  transform: scale(${(props) => (props.$active ? 1 : 0)});
-  opacity: ${(props) => (props.$active ? 1 : 0)};
-  transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.2s;
+  ${({ theme }) => theme.fonts.SemiBold10}
+  color: ${({ theme }) => theme.colors.Black01};
 `;

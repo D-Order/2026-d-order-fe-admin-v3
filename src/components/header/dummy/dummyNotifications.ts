@@ -1,14 +1,58 @@
+export type NotificationType = '직원 호출' | '송금 확인 요청';
+
 export interface Notification {
   id: number;
-  message: string;
+  tableNumber: string;
+  type: NotificationType;
+  createdAt: Date;
+  isProcessed: boolean;
 }
 
+const now = Date.now();
+
+// API 연결 전 UI 확인용 더미 데이터
+// 정렬 기준: 미처리(isProcessed: false) 중 오래된 순 → 처리중(isProcessed: true)
 export const dummyNotifications: Notification[] = [
-  { id: 1, message: "3번 테이블에서 새로운 주문이 접수되었습니다!" },
-  { id: 2, message: "3번 테이블에서 직원을 호출했습니다!" },
-  { id: 3, message: "5번 테이블에서 새로운 주문이 접수되었습니다!" },
-  { id: 4, message: "23번 테이블에서 직원을 호출했습니다!" },
-  { id: 5, message: "5번 테이블에서 직원을 호출했습니다!" },
-  { id: 6, message: "10번 테이블에서 직원을 호출했습니다!" },
-  { id: 7, message: "100번 테이블에서 직원을 호출했습니다!" },
+  {
+    id: 1,
+    tableNumber: 'T 18',
+    type: '직원 호출',
+    createdAt: new Date(now - 14 * 60 * 1000),
+    isProcessed: false,
+  },
+  {
+    id: 9,
+    tableNumber: 'T 16',
+    type: '직원 호출',
+    createdAt: new Date(now - 5 * 60 * 1000),
+    isProcessed: false,
+  },
+  {
+    id: 2,
+    tableNumber: 'API연결 예정 ',
+    type: '송금 확인 요청',
+    createdAt: new Date(now - 4 * 60 * 1000),
+    isProcessed: false,
+  },
+  {
+    id: 3,
+    tableNumber: 'T 03',
+    type: '송금 확인 요청',
+    createdAt: new Date(now - 2 * 60 * 1000),
+    isProcessed: false,
+  },
+  {
+    id: 4,
+    tableNumber: 'T 18',
+    type: '직원 호출',
+    createdAt: new Date(now - 12 * 60 * 1000),
+    isProcessed: true,
+  },
+  {
+    id: 5,
+    tableNumber: 'T 18',
+    type: '송금 확인 요청',
+    createdAt: new Date(now - 4 * 60 * 1000),
+    isProcessed: true,
+  },
 ];
