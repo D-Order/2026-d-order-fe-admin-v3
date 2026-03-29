@@ -1,32 +1,12 @@
-# ── 프로덕션 배포 (main 브랜치) ─────────────────────────────────────────────
-[context.production]
-[[context.production.redirects]]
+# ── API 프록시 redirect (SPA 규칙보다 반드시 위에 있어야 함) ─────────────────
+# force = true: 파일이 존재하더라도 강제로 redirect 적용
+[[redirects]]
   from = "/api/v3/*"
   to = "https://prod.dorder-api.shop/api/v3/:splat"
   status = 200
   force = true
 
-[[context.production.redirects]]
-  from = "/api/v2/*"
-  to = "https://prod.dorder-api.shop/api/v2/:splat"
-  status = 200
-  force = true
-
-# ── 브랜치/PR 미리보기 (develop 등) ─────────────────────────────────────────
-[context.deploy-preview]
-[[context.deploy-preview.redirects]]
-  from = "/api/v3/*"
-  to = "https://dev.dorder-api.shop/api/v3/:splat"
-  status = 200
-  force = true
-
-[[context.deploy-preview.redirects]]
-  from = "/api/v2/*"
-  to = "https://dev.dorder-api.shop/api/v2/:splat"
-  status = 200
-  force = true
-
-# ── SPA 라우팅 (공통) ────────────────────────────────────────────────────────
+# ── SPA 라우팅 (모든 경로를 index.html로) ────────────────────────────────────
 [[redirects]]
   from = "/*"
   to = "/index.html"
