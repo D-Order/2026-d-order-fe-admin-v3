@@ -1,24 +1,13 @@
-// mypage/apis/logout.ts
-import axios, { AxiosError } from "axios";
+    // mypage/apis/logout.ts
+    import axios, { AxiosError } from "axios";
+    import { instance } from "@services/instance"; // ✅ 전역 인스턴스 사용
 
-export interface ApiEnvelope<T = null> {
+    export interface ApiEnvelope<T = null> {
     message: string;
     data?: T | null;
-}
+    }
 
-const BASE_URL = import.meta.env.VITE_BASE_URL ?? "";
-
-const api = axios.create({
-    baseURL: BASE_URL,
-    // 🔒 쿠키 자동 전송 (세션/토큰 삭제 처리용)
-    withCredentials: true,
-    // Django 기본 CSRF 설정 (DELETE 요청 시 필요)
-    xsrfCookieName: "csrftoken",
-    xsrfHeaderName: "X-CSRFToken",
-    headers: { "Content-Type": "application/json" },
-});
-
-function normalizeAndThrow(error: unknown): never {
+    function normalizeAndThrow(error: unknown): never {
     if (axios.isAxiosError(error)) {
         const err = error as AxiosError<any>;
         const status = err.response?.status ?? 500;
@@ -37,14 +26,14 @@ function normalizeAndThrow(error: unknown): never {
     }
     
     throw { message: "로그아웃에 실패했습니다.", data: null };
-}
+    }
 
-/** 로그아웃: DELETE /api/v3/django/auth/ */
-export async function requestLogout(): Promise<ApiEnvelope> {
+    /** 로그아웃: DELETE /api/v3/django/auth/ */
+    export async function requestLogout(): Promise<ApiEnvelope> {
     try {
-        const res = await api.delete<ApiEnvelope>("/api/v3/django/auth/");
+        const res = await instance.delete<ApiEnvelope>("/api/v3/django/auth/");
         return res.data;
     } catch (e) {
         normalizeAndThrow(e);
     }
-}
+    }

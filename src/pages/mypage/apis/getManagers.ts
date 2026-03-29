@@ -1,5 +1,6 @@
 // mypage/apis/getManagers.ts
 import axios, { AxiosError } from "axios";
+import { instance } from "@services/instance"; // ✅ 전역 인스턴스 사용
 
 /** 좌석 과금 타입 */
 export type SeatType = "PT" | "PP" | "NO"; // Per Table / Per Person / No Seat Tax
@@ -28,16 +29,6 @@ export interface ApiErrorBody {
   detail?: string;
   message?: string;
 }
-
-const BASE_URL = import.meta.env.VITE_BASE_URL ?? "";
-
-const api = axios.create({
-  baseURL: BASE_URL,
-  withCredentials: true, // 쿠키 자동 전송 (🔒 인증 필요)
-  headers: {
-    "Content-Type": "application/json",
-  },
-});
 
 /** 에러를 사람이 읽기 쉬운 형태로 변환하여 throw */
 function normalizeAndThrow(error: unknown): never {
@@ -76,7 +67,7 @@ function normalizeAndThrow(error: unknown): never {
 /** 부스 마이페이지 정보 조회 (GET /api/v3/django/booth/mypage/) */
 export async function getManagerInfo(): Promise<ApiEnvelope<BoothMyPageData>> {
   try {
-    const res = await api.get<ApiEnvelope<BoothMyPageData>>(
+    const res = await instance.get<ApiEnvelope<BoothMyPageData>>(
       "/api/v3/django/booth/mypage/"
     );
     return res.data;
