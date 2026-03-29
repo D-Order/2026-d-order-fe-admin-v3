@@ -4,7 +4,7 @@ import * as S from './OrderList.styled';
 import CategoryBox from '../categorybox/CategoryBox';
 import OrderBox, { type OrderBoxData } from '../orderbox/OrderBox';
 
-import SadAcoImage from '@assets/icons/SadAco.png';
+import SadAcoImage from '@assets/icons/SadAcoco.png';
 
 export type OpenTarget = { tableIndex: number; itemIndex: number } | null;
 
@@ -32,13 +32,17 @@ export default function OrderList({
       <CategoryBox />
       {isEmpty ? (
         <S.EmptyStateWrapper>
-          <S.EmptyStateImage src={SadAcoImage} alt="" />
+          <S.EmptyStateImage src={SadAcoImage} alt='' />
           <S.EmptyStateText>{`요청이 없어요..\n이참에 쉬어볼까요?`}</S.EmptyStateText>
         </S.EmptyStateWrapper>
       ) : (
         orders.map((order, index) => (
           <Fragment
-            key={order.orderId != null ? `o-${order.orderId}` : `i-${index}-t-${order.tableNumber}`}
+            key={
+              order.orderId != null
+                ? `o-${order.orderId}`
+                : `i-${index}-t-${order.tableNumber}`
+            }
           >
             <OrderBox
               tableNumber={order.tableNumber}
