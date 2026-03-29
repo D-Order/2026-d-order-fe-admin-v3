@@ -16,10 +16,12 @@ export default defineConfig(({ mode }) => {
                 '/api/v3': {
                     target: apiTarget,
                     changeOrigin: true,
+                    cookieDomainRewrite: { '.dorder-api.shop': 'localhost' },
                 },
                 '/api/v2': {
                     target: apiTarget,
                     changeOrigin: true,
+                    cookieDomainRewrite: { '.dorder-api.shop': 'localhost' },
                 },
             },
         },
