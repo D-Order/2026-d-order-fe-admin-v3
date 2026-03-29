@@ -1,17 +1,14 @@
 // tableView/_ws/useTableDetailWS.ts
 import { useEffect, useRef } from "react";
 import { TableWSPayload } from "./types";
+import { getWsUrl } from "@utils/getWsUrl";
 
 interface UseTableDetailWSOptions {
     tableNum: number;
     onConnectionEstablished?: (data: any) => void;
     // 상세뷰에서 필요한 추가 이벤트(예: order_update) 콜백 등록
-    onOrderUpdate?: (data: any) => void; 
+    onOrderUpdate?: (data: any) => void;
 }
-
-const WS_BASE_URL = (import.meta.env.VITE_BASE_URL || "")
-    .replace(/^http/, "ws")
-    .replace(/\/$/, "");
 
 export const useTableDetailWS = ({ tableNum, ...options }: UseTableDetailWSOptions) => {
     const wsRef = useRef<WebSocket | null>(null);
@@ -21,7 +18,7 @@ export const useTableDetailWS = ({ tableNum, ...options }: UseTableDetailWSOptio
 
         let isMounted = true;
         
-        const wsUrl = `${WS_BASE_URL}/ws/django/tables/${tableNum}/`;
+        const wsUrl = getWsUrl(`/ws/django/tables/${tableNum}/`);
         const socket = new WebSocket(wsUrl);
         wsRef.current = socket;
 

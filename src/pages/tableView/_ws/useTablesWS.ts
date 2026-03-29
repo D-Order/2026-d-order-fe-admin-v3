@@ -1,6 +1,7 @@
 // tableView/_ws/useTablesWS.ts
 import { useEffect, useRef } from "react";
 import { TableWSPayload } from "./types";
+import { getWsUrl } from "@utils/getWsUrl";
 
 interface UseTablesWSOptions {
     onConnectionEstablished?: (data: any) => void;
@@ -11,10 +12,6 @@ interface UseTablesWSOptions {
     onError?: (data: any) => void;
 }
 
-const WS_BASE_URL = (import.meta.env.VITE_BASE_URL || "")
-  .replace(/^http/, "ws") // http(s)를 ws(s)로 변환
-  .replace(/\/$/, "");    // 맨 뒤 슬래시 제거
-
 export const useTablesWS = (options: UseTablesWSOptions = {}) => {
     const wsRef = useRef<WebSocket | null>(null);
     const reconnectTimeoutRef = useRef<number | null>(null);
@@ -23,12 +20,7 @@ export const useTablesWS = (options: UseTablesWSOptions = {}) => {
         let isMounted = true;
 
         const connect = () => {
-            // 1. 토큰 가져오기 (CORS 환경에서 쿠키가 전송되지 않을 때를 대비한 쿼리스트링 방식)
-            const token = localStorage.getItem('accessToken') || "";
-            
-            // 2. URL 설정 (토큰 포함)
-            // 🚨 만약 이 주소로도 안 되면, 중간에 v3를 넣어서 테스트 해보세요! (/ws/v3/django/...)
-            const wsUrl = `${WS_BASE_URL}/ws/django/booth/tables/?token=${token}`;
+            const wsUrl = getWsUrl('/ws/django/booth/tables/');
             
             console.log(`[WS:Tables] 🔄 연결 시도 중... URL: ${wsUrl}`);
 

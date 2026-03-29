@@ -28,6 +28,14 @@ export default defineConfig(({ mode }) => {
           changeOrigin: true,
           cookieDomainRewrite: { '.dorder-api.shop': 'localhost' },
         },
+        // WebSocket proxy: wss://localhost:5173/ws/... → wss://dev.dorder-api.shop/ws/...
+        // localhost 쿠키를 백엔드에 그대로 전달하기 위해 vite proxy 경유 필수
+        '/ws': {
+          target: apiTarget,
+          changeOrigin: true,
+          ws: true,
+          cookieDomainRewrite: { '.dorder-api.shop': 'localhost' },
+        },
       },
     },
     resolve: {
@@ -40,6 +48,7 @@ export default defineConfig(({ mode }) => {
         '@constants': path.resolve(__dirname, 'src/constants'),
         '@assets': path.resolve(__dirname, 'src/assets'),
         '@services': path.resolve(__dirname, 'src/services'),
+      '@utils': path.resolve(__dirname, 'src/utils'),
       },
     },
   };

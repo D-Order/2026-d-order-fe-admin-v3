@@ -24,6 +24,12 @@ export default defineConfig(({ mode }) => {
           changeOrigin: true,
           cookieDomainRewrite: { '.dorder-api.shop': 'localhost' },
         },
+        '/ws': {
+          target: apiTarget,
+          changeOrigin: true,
+          ws: true,
+          cookieDomainRewrite: { '.dorder-api.shop': 'localhost' },
+        },
       },
     },
     resolve: {
@@ -36,6 +42,7 @@ export default defineConfig(({ mode }) => {
         '@constants': path.resolve(__dirname, 'src/constants'),
         '@assets': path.resolve(__dirname, 'src/assets'),
         '@services': path.resolve(__dirname, 'src/services'),
+        '@utils': path.resolve(__dirname, 'src/utils'),
       },
     },
   };

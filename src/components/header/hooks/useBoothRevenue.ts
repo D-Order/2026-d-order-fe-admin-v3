@@ -2,25 +2,12 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import BoothService from '@services/BoothService';
+import { getWsUrl } from '@utils/getWsUrl';
 
-// 쿠키 기반 인증으로 전환되어 URL에 토큰을 포함하지 않음.
-// VITE_BASE_URL(http/https)을 ws/wss로 자동 변환하여 사용.
 const WS_PATH = '/ws/django/booth/sales/';
 
 function getSalesWsUrl(): string {
-  // VITE_WS_URL: WebSocket 전용 환경변수 (wss:// 또는 ws://)
-  // VITE_BASE_URL은 HTTP API용이므로 WS URL 생성에는 VITE_WS_URL 사용
-  const base = (import.meta.env.VITE_WS_URL ?? '')
-    .toString()
-    .replace(/\/+$/, '');
-  if (!base) return '';
-  if (base.startsWith('https://'))
-    return `${base.replace('https://', 'wss://')}${WS_PATH}`;
-  if (base.startsWith('http://'))
-    return `${base.replace('http://', 'ws://')}${WS_PATH}`;
-  if (base.startsWith('wss://') || base.startsWith('ws://'))
-    return `${base}${WS_PATH}`;
-  return '';
+  return getWsUrl(WS_PATH);
 }
 
 // close code 정의 (명세 기준)
