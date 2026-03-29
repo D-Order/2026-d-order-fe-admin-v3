@@ -1,5 +1,5 @@
 // src/pages/Dashboard/_services/dashboard.api.ts
-import { instance } from "@services/instance";
+import { instanceV2 } from "@services/instance";
 import type { DashboardResponse } from "./dashboard.types";
 
 const REST_ENDPOINT = "/api/v2/statistic/";
@@ -17,7 +17,7 @@ function getBoothIdStrict(): string {
 export async function fetchDashboard(): Promise<DashboardResponse> {
   const boothId = getBoothIdStrict();
 
-  const res = await instance.get(REST_ENDPOINT, {
+  const res = await instanceV2.get(REST_ENDPOINT, {
     headers: { "Booth-ID": boothId },
   });
 

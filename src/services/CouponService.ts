@@ -1,4 +1,4 @@
-import { instance } from './instance';
+import { instance, instanceV2 } from './instance';
 
 export interface postNewCouponRequest {
   name: string;
@@ -102,12 +102,12 @@ export const CouponService = {
     }
   },
 
-  // V3 미제공 엔드포인트 — 기존 v2 유지
+  // V3 미제공 엔드포인트 — 기존 v2 유지 (v3 API 추가 시 instanceV2 → instance로 교체)
   getCouponDetail: async (
     coupon_id: number,
   ): Promise<getCouponDetailResponse> => {
     try {
-      const response = await instance.get<getCouponDetailResponse>(
+      const response = await instanceV2.get<getCouponDetailResponse>(
         `/api/v2/coupons/${coupon_id}/`,
       );
       return response.data;
@@ -116,12 +116,12 @@ export const CouponService = {
     }
   },
 
-  // V3 미제공 엔드포인트 — 기존 v2 유지
+  // V3 미제공 엔드포인트 — 기존 v2 유지 (v3 API 추가 시 instanceV2 → instance로 교체)
   getCouponDetailCodeList: async (
     coupon_id: number,
   ): Promise<getCouponCodeListResponse> => {
     try {
-      const response = await instance.get<getCouponCodeListResponse>(
+      const response = await instanceV2.get<getCouponCodeListResponse>(
         `/api/v2/coupons/${coupon_id}/codes/`,
       );
       return response.data;
